@@ -2,9 +2,6 @@
   # All the crates
   members = ["utils", "day-01", "day-02"]
 
-  # The crate to run
-  default-members = ["day-02"]
-
   [workspace.package]
     authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
     description = "My code for the advent of code - all written in Rust!"
