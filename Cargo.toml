@@ -1,7 +1,9 @@
-
-
 [workspace]
-  members = ["utils", "day-01"]
+  # All the crates
+  members = ["utils", "day-01", "day-02"]
+
+  # The crate to run
+  default-members = ["day-02"]
 
   [workspace.package]
     authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
