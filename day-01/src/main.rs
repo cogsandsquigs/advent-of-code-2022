@@ -15,7 +15,7 @@ fn main() -> Result<()> {
         .collect();
 
     // Sort the elves from highest to lowest
-    elves.sort_unstable_by(|a, b| {
+    elves.sort_by(|a, b| {
         // Flip from regular `a.cmp(b)` to sort highest to lowest/descending, meaning
         // we get the elf w/ highest calorie count by indexing at 0.
         b.cmp(&a)
