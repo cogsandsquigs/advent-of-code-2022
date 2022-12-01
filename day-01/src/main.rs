@@ -25,7 +25,7 @@ fn main() -> Result<()> {
 
     println!(
         "Puzzle 2 answer: {}",
-        elves.clone().into_iter().take(3).fold(0, |acc, x| acc + x)
+        elves.into_iter().take(3).fold(0, |acc, x| acc + x)
     );
 
     Ok(())
