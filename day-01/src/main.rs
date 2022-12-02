@@ -1,4 +1,4 @@
-use anyhow::Result;
+use std::io::Result;
 use utils::files::read_file_string;
 
 fn main() -> Result<()> {
