@@ -1,4 +1,4 @@
-use std::io::Result;
+use anyhow::Result;
 use utils::files::read_file_string;
 
 fn main() -> Result<()> {
@@ -7,12 +7,8 @@ fn main() -> Result<()> {
     // Get the elves' calorie counts
     let mut elves: Vec<usize> = input
         .split("\n\n")
-        .map(|elf| {
-            elf.split("\n")
-                .map(|count| count.parse::<usize>().unwrap())
-                .sum()
-        })
-        .collect();
+        .map(|elf| elf.split("\n").map(|count| count.parse::<usize>()).sum())
+        .collect::<Result<_, _>>()?;
 
     // Sort the elves from highest to lowest
     elves.sort_by(|a, b| {
