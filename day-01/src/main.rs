@@ -10,7 +10,7 @@ fn main() -> Result<()> {
         .map(|elf| {
             elf.split("\n")
                 .map(|count| count.parse::<usize>().unwrap())
-                .fold(0, |acc, x| acc + x)
+                .sum()
         })
         .collect();
 
@@ -25,7 +25,7 @@ fn main() -> Result<()> {
 
     println!(
         "Puzzle 2 answer: {}",
-        elves.into_iter().take(3).fold(0, |acc, x| acc + x)
+        elves.into_iter().take(3).sum::<usize>()
     );
 
     Ok(())
