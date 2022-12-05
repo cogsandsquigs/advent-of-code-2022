@@ -10,7 +10,7 @@ use nom::{
     },
     error::{ErrorKind, ParseError},
     multi::{count, separated_list1},
-    sequence::{delimited, pair},
+    sequence::{delimited, pair, separated_pair},
     IResult,
 };
 use utils::files::read_file_string;
@@ -26,17 +26,17 @@ fn main() -> Result<()> {
 }
 
 fn part_2(input: &str) -> usize {
+    todo!()
+}
+
+fn part_1(input: &str) -> usize {
     let stacks = Stacks::new(input);
 
     todo!()
 }
 
-fn part_1(input: &str) -> usize {
-    todo!()
-}
-
 struct Stacks {
-    stacks: HashMap<usize, Vec<char>>,
+    stacks: Vec<Vec<char>>,
     moves: Vec<(
         // Number of crates to move
         usize,
@@ -48,19 +48,37 @@ struct Stacks {
 }
 
 impl Stacks {
-    fn new(input: &str) -> IResult<&str, Stacks> {
-        todo!();
+    fn new(input: &str) -> Stacks {
+        let stacks: Stacks = Stacks {
+            stacks: vec![],
+            moves: vec![],
+        };
+
+        let (_, (mut stack_crates, stack_idxs)) = stack_parser(input).unwrap();
+
+        // Reverse them so we can traverse them and push/pop them on as needed
+        stack_crates.reverse();
+
+        for crates in stack_crates {
+            for (idx, cr) in crates.into_iter().enumerate() {
+                stacks
+            }
+        }
+
+        stacks
     }
 }
 
 fn stack_parser(input: &str) -> IResult<&str, (Vec<Vec<&str>>, Vec<&str>)> {
     // Get the stacks themselves
     let empty = tag("   ");
-    let stack_crate = delimited::<&str, _, _, _, _, _, _, _>(char('['), take(1), char(']'));
+    let stack_crate =
+        delimited::<&str, _, _, _, _, _, _, _>(char('['), take(1 as usize), char(']'));
     let line = separated_list1(char(' '), alt((stack_crate, empty)));
 
-    pair(
+    separated_pair(
         separated_list1(char('\n'), line),
+        char('\n'),
         separated_list1(char(' '), delimited(char(' '), digit1, char(' '))),
     )(input)
 }
