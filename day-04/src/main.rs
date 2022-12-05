@@ -1,10 +1,5 @@
-use std::ops::{Range, RangeInclusive};
-
 use anyhow::Result;
-use itertools::Itertools;
-use nom::{
-    bytes::complete::tag, character::complete::digit1, error::ParseError, sequence::separated_pair,
-};
+use std::ops::RangeInclusive;
 use utils::files::read_file_string;
 
 fn main() -> Result<()> {
@@ -18,11 +13,16 @@ fn main() -> Result<()> {
 }
 
 fn part_2(input: &String) -> usize {
-    todo!()
+    let pairs: Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> = get_pairs(input);
+
+    pairs
+        .into_iter()
+        .filter(|(a, b)| (a.start() <= b.end() && a.end() >= b.start()))
+        .count()
 }
 
 fn part_1(input: &String) -> usize {
-    let pairs: Vec<(RangeInclusive<u32>, RangeInclusive<u32>)> = get_pairs(input);
+    let pairs: Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> = get_pairs(input);
 
     pairs
         .into_iter()
@@ -34,5 +34,18 @@ fn part_1(input: &String) -> usize {
 }
 
 fn get_pairs(input: &String) -> Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> {
-    todo!()
+    input
+        .lines()
+        .map(|line| {
+            let mut ranges = line.split(',').map(|range| {
+                let mut split = range.split('-');
+                let a = split.next().unwrap().parse().unwrap();
+                let b = split.next().unwrap().parse().unwrap();
+
+                a..=b
+            });
+
+            (ranges.next().unwrap(), ranges.next().unwrap())
+        })
+        .collect()
 }
