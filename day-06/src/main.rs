@@ -1,16 +1,8 @@
 use anyhow::Result;
-use nom::{
-    branch::alt,
-    bytes::complete::{tag, take},
-    character::{complete::digit1, streaming::char},
-    multi::separated_list1,
-    sequence::{delimited, separated_pair},
-    IResult,
-};
 use utils::files::read_file_string;
 
 fn main() -> Result<()> {
-    let input = read_file_string("day-05/input.txt")?;
+    let input = read_file_string("day-06/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 
@@ -20,9 +12,34 @@ fn main() -> Result<()> {
 }
 
 fn part_2(input: &str) -> usize {
-    todo!()
+    let chars: Vec<char> = input.chars().collect();
+
+    for (idx, window) in chars.windows(14).enumerate() {
+        if all_unique(window) {
+            return idx + 14;
+        }
+    }
+
+    unreachable!("There should have been a stop before")
 }
 
 fn part_1(input: &str) -> usize {
-    todo!()
+    let chars: Vec<char> = input.chars().collect();
+
+    for (idx, window) in chars.windows(4).enumerate() {
+        if all_unique(window) {
+            return idx + 4;
+        }
+    }
+
+    unreachable!("There should have been a stop before")
+}
+
+fn all_unique(s: &[char]) -> bool {
+    s.into_iter().enumerate().all(|(i, &c)| {
+        s.into_iter()
+            .enumerate()
+            .skip(i + 1)
+            .all(|(_, &other)| c != other)
+    })
 }
