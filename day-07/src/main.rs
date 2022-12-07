@@ -129,22 +129,15 @@ fn traverse(lines: &mut Lines, mut root: Folder) -> Folder {
     root
 }
 
-trait Tree: Debug {
-    fn size(&self) -> usize;
-}
-
 #[derive(Clone, Debug)]
 struct Folder {
     pub folders: HashMap<String, Folder>,
     pub files: HashMap<String, File>,
 }
 
-impl Tree for Folder {
+impl Folder {
     fn size(&self) -> usize {
-        self.files
-            .iter()
-            .map(|(_, file)| file.size())
-            .sum::<usize>()
+        self.files.iter().map(|(_, file)| file.size).sum::<usize>()
             + self
                 .folders
                 .iter()
@@ -156,10 +149,4 @@ impl Tree for Folder {
 #[derive(Clone, Debug)]
 struct File {
     pub size: usize,
-}
-
-impl Tree for File {
-    fn size(&self) -> usize {
-        self.size
-    }
 }
