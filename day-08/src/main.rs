@@ -1,5 +1,4 @@
 use anyhow::Result;
-use itertools::Itertools;
 use utils::files::read_file_string;
 
 fn main() -> Result<()> {
