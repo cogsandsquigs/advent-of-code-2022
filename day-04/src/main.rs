@@ -12,20 +12,20 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part_2(input: &String) -> usize {
+fn part_2(input: &str) -> usize {
     let pairs: Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> = get_pairs(input);
 
     pairs
-        .into_iter()
+        .iter()
         .filter(|(a, b)| (a.start() <= b.end() && a.end() >= b.start()))
         .count()
 }
 
-fn part_1(input: &String) -> usize {
+fn part_1(input: &str) -> usize {
     let pairs: Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> = get_pairs(input);
 
     pairs
-        .into_iter()
+        .iter()
         .filter(|(a, b)| {
             a.start() <= b.start() && b.end() <= a.end()
                 || a.start() >= b.start() && b.end() >= a.end()
@@ -33,7 +33,7 @@ fn part_1(input: &String) -> usize {
         .count()
 }
 
-fn get_pairs(input: &String) -> Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> {
+fn get_pairs(input: &str) -> Vec<(RangeInclusive<usize>, RangeInclusive<usize>)> {
     input
         .lines()
         .map(|line| {

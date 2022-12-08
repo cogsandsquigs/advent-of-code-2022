@@ -34,7 +34,7 @@ fn part_2(input: &str) -> usize {
 fn part_2_walk(root: &Folder, unused_size: usize) -> usize {
     let mut smallest = root.size();
 
-    for (_, folder) in (&root.folders).into_iter() {
+    for folder in root.folders.values() {
         let folder_size = part_2_walk(folder, unused_size);
 
         if unused_size + folder_size >= 30000000 && folder_size < smallest {
@@ -65,7 +65,7 @@ fn part_1(input: &str) -> usize {
 fn part_1_walk(root: &Folder) -> usize {
     let mut sum = 0;
 
-    for (_, folder) in (&root.folders).into_iter() {
+    for folder in root.folders.values() {
         let x = folder.size();
         if x <= 100000 {
             sum += x;
@@ -86,12 +86,12 @@ fn traverse(lines: &mut Lines, mut root: Folder) -> Folder {
         if current.starts_with("$ ls") {
             let mut consumed_n = 0;
 
-            for line in (lines.clone()).into_iter() {
+            for line in lines.clone() {
                 consumed_n += 1;
-                if line.starts_with("$") {
+                if line.starts_with('$') {
                     break;
                 } else if line.starts_with("dir ") {
-                    let name = line.split(" ").nth(1).unwrap().to_string();
+                    let name = line.split(' ').nth(1).unwrap().to_string();
 
                     root.folders.insert(
                         name.clone(),
@@ -101,7 +101,7 @@ fn traverse(lines: &mut Lines, mut root: Folder) -> Folder {
                         },
                     );
                 } else {
-                    let mut sepr = line.split(" ");
+                    let mut sepr = line.split(' ');
                     let (size, name) = (
                         sepr.next().unwrap().parse::<usize>().unwrap(),
                         sepr.next().unwrap().to_string(),

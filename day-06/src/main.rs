@@ -36,8 +36,8 @@ fn part_1(input: &str) -> usize {
 }
 
 fn all_unique(s: &[char]) -> bool {
-    s.into_iter().enumerate().all(|(i, &c)| {
-        s.into_iter()
+    s.iter().enumerate().all(|(i, &c)| {
+        s.iter()
             .enumerate()
             .skip(i + 1)
             .all(|(_, &other)| c != other)

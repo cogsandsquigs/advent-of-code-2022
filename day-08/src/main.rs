@@ -17,11 +17,11 @@ fn part_2(input: &str) -> usize {
     let mut max_score = 0;
 
     for (y, row) in trees.iter().enumerate() {
-        for (x, _) in row.into_iter().enumerate() {
+        for (x, _) in row.iter().enumerate() {
             let lines = get_edge_lines(&trees, (x, y));
 
             let score: usize = lines
-                .into_iter()
+                .iter()
                 .map(|line| visible_trees(trees[y][x], line))
                 .product();
 
@@ -34,12 +34,12 @@ fn part_2(input: &str) -> usize {
     max_score
 }
 
-fn visible_trees(height: u32, line: Vec<u32>) -> usize {
+fn visible_trees(height: u32, line: &Vec<u32>) -> usize {
     let mut num_visible = 0;
 
     for tree in line {
         num_visible += 1;
-        if tree >= height {
+        if *tree >= height {
             break;
         }
     }
@@ -53,7 +53,7 @@ fn part_1(input: &str) -> usize {
     let mut num_visible = 0;
 
     for (y, row) in trees.iter().enumerate() {
-        for (x, _) in row.into_iter().enumerate() {
+        for (x, _) in row.iter().enumerate() {
             let lines = get_edge_lines(&trees, (x, y));
 
             // If it's on an edge, then we can add one to the count and continue

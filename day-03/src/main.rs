@@ -16,7 +16,7 @@ fn part_2(input: &str) -> usize {
     let rucksacks: Vec<&str> = input.lines().collect();
 
     rucksacks
-        .into_iter()
+        .iter()
         .chunks(3)
         .into_iter()
         .map(|mut group| {
@@ -32,9 +32,9 @@ fn part_2(input: &str) -> usize {
         .sum()
 }
 
-fn common_between_3(a: &Vec<char>, b: &Vec<char>, c: &Vec<char>) -> char {
+fn common_between_3(a: &[char], b: &[char], c: &[char]) -> char {
     for char in a {
-        if b.contains(&char) && c.contains(char) {
+        if b.contains(char) && c.contains(char) {
             return *char;
         }
     }
@@ -46,7 +46,7 @@ fn part_1(input: &str) -> usize {
     let rucksacks: Vec<&str> = input.lines().collect();
 
     rucksacks
-        .into_iter()
+        .iter()
         .map(|sack| {
             let (a, b) = (
                 &sack[0..sack.len() / 2].chars().collect::<Vec<char>>(),
@@ -67,9 +67,9 @@ fn get_priority(char: char) -> usize {
     }
 }
 
-fn common_between_2(a: &Vec<char>, b: &Vec<char>) -> char {
+fn common_between_2(a: &[char], b: &[char]) -> char {
     for char in a {
-        if b.contains(&char) {
+        if b.contains(char) {
             return *char;
         }
     }

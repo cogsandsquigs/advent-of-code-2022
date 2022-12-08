@@ -87,10 +87,10 @@ fn main() -> Result<()> {
 
     // Get all the moves
     let turns: Vec<(Move, Move)> = input
-        .split('\n')
+        .lines()
         .map(|s| {
             (
-                s.chars().nth(0).unwrap().try_into().unwrap(),
+                s.chars().next().unwrap().try_into().unwrap(),
                 s.chars().nth(2).unwrap().try_into().unwrap(),
             )
         })

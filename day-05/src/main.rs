@@ -25,15 +25,10 @@ fn part_2(input: &str) -> String {
     for (amount, from, to) in supply.moves {
         let from_len = supply.stacks[from - 1].len();
         let tail = supply.stacks[from - 1].split_off(from_len - amount);
-        supply.stacks[to - 1].extend(tail.into_iter());
+        supply.stacks[to - 1].extend(tail.iter());
     }
 
-    String::from_iter(
-        supply
-            .stacks
-            .into_iter()
-            .map(|stack| stack.last().unwrap().clone()),
-    )
+    String::from_iter(supply.stacks.iter().map(|stack| stack.last().unwrap()))
 }
 
 fn part_1(input: &str) -> String {
@@ -43,15 +38,10 @@ fn part_1(input: &str) -> String {
         let from_len = supply.stacks[from - 1].len();
         let mut tail = supply.stacks[from - 1].split_off(from_len - amount);
         tail.reverse();
-        supply.stacks[to - 1].extend(tail.into_iter());
+        supply.stacks[to - 1].extend(tail.iter());
     }
 
-    String::from_iter(
-        supply
-            .stacks
-            .into_iter()
-            .map(|stack| stack.last().unwrap().clone()),
-    )
+    String::from_iter(supply.stacks.iter().map(|stack| stack.last().unwrap()))
 }
 
 #[derive(Debug)]
@@ -80,7 +70,7 @@ impl Supply {
         stack_crates.reverse();
 
         for crates in stack_crates {
-            for (idx, cr) in crates.into_iter().enumerate() {
+            for (idx, cr) in crates.iter().enumerate() {
                 if supply.stacks.is_empty() || supply.stacks.len() < idx + 1 {
                     supply.stacks.push(vec![]);
                 }
@@ -126,8 +116,7 @@ fn move_parser(input: &str) -> IResult<&str, (usize, usize, usize)> {
 fn stack_parser(input: &str) -> IResult<&str, (Vec<Vec<&str>>, Vec<&str>)> {
     // Get the stacks themselves
     let empty = tag("   ");
-    let stack_crate =
-        delimited::<&str, _, _, _, _, _, _, _>(char('['), take(1 as usize), char(']'));
+    let stack_crate = delimited::<&str, _, _, _, _, _, _, _>(char('['), take(1_usize), char(']'));
     let line = separated_list1(char(' '), alt((stack_crate, empty)));
 
     separated_pair(
