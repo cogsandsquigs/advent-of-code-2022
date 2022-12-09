@@ -4,7 +4,7 @@ use anyhow::Result;
 use utils::files::read_file_string;
 
 fn main() -> Result<()> {
-    let input = read_file_string("day-09/input.test.txt")?;
+    let input = read_file_string("day-09/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 
@@ -16,21 +16,30 @@ fn main() -> Result<()> {
 fn part_2(input: &str) -> usize {
     let motions = motions(input);
 
-    simulate_10_knots(motions)
+    simulate_n_knots(motions, 10)
 }
 
-fn simulate_10_knots(motions: Vec<(Direction, isize)>) -> usize {
-    let mut head_pos = (0, 0);
+fn part_1(input: &str) -> usize {
+    let motions = motions(input);
 
-    // Buffer of 10 "knots", as we have 9 knots in front of the tail, and the tail itself.
-    let mut knots: Vec<(isize, isize)> = vec![(0, 0); 10];
+    simulate_n_knots(motions, 2)
+}
 
+fn simulate_n_knots(motions: Vec<(Direction, isize)>, n: usize) -> usize {
+    let mut knots = vec![(0, 0); n];
     let mut unique_visits: HashSet<(isize, isize)> = HashSet::new();
 
-    for (direction, steps) in motions {
-        for _ in 0..steps {
-            (head_pos, knots) = step_10_knots_once(head_pos, &knots, direction);
+    for (direction, distance) in motions {
+        for _ in 0..distance {
+            // Step the head knot forward
+            knots[n - 1] = head_direction(knots[n - 1], direction);
 
+            // Step the tail knots forward
+            for i in (0..n - 1).rev() {
+                knots[i] = step_knot(knots[i + 1], knots[i]);
+            }
+
+            // Insert last knot into set
             unique_visits.insert(knots[0]);
         }
     }
@@ -38,57 +47,51 @@ fn simulate_10_knots(motions: Vec<(Direction, isize)>) -> usize {
     unique_visits.len()
 }
 
-/// Takes in head pos, tail pos, and dir, returns new head pos and tail pos
-fn step_10_knots_once(
-    head_pos: (isize, isize),
-    knots: &[(isize, isize)],
-    direction: Direction,
-) -> ((isize, isize), Vec<(isize, isize)>) {
-    let mut new_knots = knots.to_vec();
-    let new_head_pos: (isize, isize);
-
-    (new_head_pos, new_knots[9]) = step_once(head_pos, knots[9], direction);
-
-    // Reversed b/c we want to move all the knots starting from front (9) to back (0)
-    for i in (0..9).rev() {
-        new_knots[i] = step_knot(new_knots[i + 1], knots[i]);
-    }
-
-    (new_head_pos, new_knots)
-}
-
 fn step_knot(new_head_pos: (isize, isize), tail_pos: (isize, isize)) -> (isize, isize) {
     let mut new_tail_pos = tail_pos;
 
-    // We continuously replace our tail position with our previous head position, unless the head position is
-    // within sqrt(2) distance of the tail position.
-    if euclidean_distance(&new_head_pos, &tail_pos) > 2_f64.sqrt() {
-        new_tail_pos = *neighbors(&new_head_pos)
-            .iter()
-            .min_by(|pos1, pos2| {
-                euclidean_distance(&new_head_pos, pos1)
-                    .partial_cmp(&euclidean_distance(&new_head_pos, pos2))
-                    .unwrap()
-            })
-            .unwrap();
+    // If the head is adjacent to the tail, use the original tail position
+    if chebyshev_distance(&new_head_pos, &new_tail_pos) == 1 {
+        return new_tail_pos;
+    }
+    // If it is in the same row or column, use the orthogonal neighbors
+    else if new_head_pos.0 == new_tail_pos.0 || new_head_pos.1 == new_tail_pos.1 {
+        for neighbor in neighbors_orthogonal(&new_tail_pos) {
+            if chebyshev_distance(&new_head_pos, &neighbor)
+                < chebyshev_distance(&new_head_pos, &new_tail_pos)
+            {
+                new_tail_pos = neighbor;
+            }
+        }
+    }
+    // Otherwise, use the diagonal neighbors
+    else {
+        for neighbor in neighbors_diagonal(&new_tail_pos) {
+            if chebyshev_distance(&new_head_pos, &neighbor)
+                < chebyshev_distance(&new_head_pos, &new_tail_pos)
+            {
+                new_tail_pos = neighbor;
+            }
+        }
     }
 
     new_tail_pos
 }
 
-fn neighbors(pos: &(isize, isize)) -> [(isize, isize); 8] {
-    let &(x, y) = pos;
+fn head_direction(pos: (isize, isize), direction: Direction) -> (isize, isize) {
+    match direction {
+        Direction::Up => (pos.0, pos.1 + 1),
+        Direction::Down => (pos.0, pos.1 - 1),
+        Direction::Left => (pos.0 - 1, pos.1),
+        Direction::Right => (pos.0 + 1, pos.1),
+    }
+}
 
-    [
-        (x - 1, y),
-        (x + 1, y),
-        (x, y - 1),
-        (x, y + 1),
-        (x - 1, y - 1),
-        (x + 1, y + 1),
-        (x - 1, y + 1),
-        (x + 1, y - 1),
-    ]
+fn chebyshev_distance(a: &(isize, isize), b: &(isize, isize)) -> isize {
+    let &(x1, y1) = a;
+    let &(x2, y2) = b;
+
+    (x1 - x2).abs().max((y1 - y2).abs())
 }
 
 fn neighbors_diagonal(pos: &(isize, isize)) -> [(isize, isize); 4] {
@@ -106,62 +109,6 @@ fn neighbors_orthogonal(pos: &(isize, isize)) -> [(isize, isize); 4] {
     let &(x, y) = pos;
 
     [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-}
-
-fn part_1(input: &str) -> usize {
-    let motions = motions(input);
-
-    simulate_1_knot(motions)
-}
-
-fn simulate_1_knot(motions: Vec<(Direction, isize)>) -> usize {
-    let (mut head_pos, mut tail_pos) = ((0, 0), (0, 0));
-    let mut unique_visits: HashSet<(isize, isize)> = HashSet::new();
-
-    // Insert starting position, as tail is initially at the same position as the head
-    unique_visits.insert(tail_pos);
-
-    for (direction, steps) in motions {
-        for _ in 0..steps {
-            (head_pos, tail_pos) = step_once(head_pos, tail_pos, direction);
-
-            unique_visits.insert(tail_pos);
-        }
-    }
-
-    unique_visits.len()
-}
-
-/// Takes in head pos, tail pos, and dir, returns new head pos and tail pos
-fn step_once(
-    head_pos: (isize, isize),
-    tail_pos: (isize, isize),
-    direction: Direction,
-) -> ((isize, isize), (isize, isize)) {
-    let prev_head_pos = head_pos;
-    let new_head_pos = match direction {
-        Direction::Up => (head_pos.0, head_pos.1 + 1),
-        Direction::Down => (head_pos.0, head_pos.1 - 1),
-        Direction::Left => (head_pos.0 - 1, head_pos.1),
-        Direction::Right => (head_pos.0 + 1, head_pos.1),
-    };
-
-    let mut new_tail_pos = tail_pos;
-
-    // We continuously replace our tail position with our previous head position, unless the head position is
-    // within sqrt(2) distance of the tail position.
-    if euclidean_distance(&new_head_pos, &tail_pos) > 2_f64.sqrt() {
-        new_tail_pos = prev_head_pos;
-    }
-
-    (new_head_pos, new_tail_pos)
-}
-
-fn euclidean_distance(from: &(isize, isize), to: &(isize, isize)) -> f64 {
-    let (x1, y1) = from;
-    let (x2, y2) = to;
-
-    ((x1 - x2).pow(2) as f64 + (y1 - y2).pow(2) as f64).sqrt()
 }
 
 fn motions(input: &str) -> Vec<(Direction, isize)> {
