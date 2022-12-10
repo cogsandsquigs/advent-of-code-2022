@@ -6,14 +6,33 @@ fn main() -> Result<()> {
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 
-    // Prints stuff out to the screen
+    println!("Puzzle 2 answer: ");
+    // Prints stuff out to the screen, no need to return it
     part_2(&input);
 
     Ok(())
 }
 
-fn part_2(input: &str) -> usize {
-    todo!()
+fn part_2(input: &str) {
+    let mut crt_screen: Vec<Vec<char>> = vec![vec!['.'; 40]; 6];
+    let timeline = &register_timeline(instructions(input).as_slice())[1..]; // Remove the first 1
+
+    for (i, value) in timeline.iter().enumerate() {
+        let x = i % 40;
+        let y = (i / 40) % 6;
+
+        crt_screen[y][x] = if *value == x as i64 || *value + 1 == x as i64 || *value - 1 == x as i64
+        {
+            '#'
+        } else {
+            '.'
+        };
+    }
+
+    // Print the crt screen
+    for line in crt_screen {
+        println!("{}", line.iter().collect::<String>());
+    }
 }
 
 fn part_1(input: &str) -> i64 {
