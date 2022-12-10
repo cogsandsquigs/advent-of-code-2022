@@ -1,21 +1,21 @@
 [workspace]
-    # All the crates
-    members = [
-        "utils",
-        "day-01",
-        "day-02",
-        "day-03",
-        "day-04",
-        "day-05",
-        "day-06",
-        "day-07",
-        "day-08",
-        "day-09",
-        "day-10",
-    ]
+	# All the crates
+	members = [
+		"utils",
+		"day-01",
+		"day-02",
+		"day-03",
+		"day-04",
+		"day-05",
+		"day-06",
+		"day-07",
+		"day-08",
+		"day-09",
+		"day-10",
+	]
 
-    [workspace.package]
-        authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
-        description = "My code for the advent of code - all written in Rust!"
-        edition     = "2021"
-        version     = "0.0.1"
+	[workspace.package]
+		authors     = ["Ian Pratt <ianjdpratt@gmail.com>"]
+		description = "My code for the advent of code - all written in Rust!"
+		edition     = "2021"
+		version     = "0.0.1"
