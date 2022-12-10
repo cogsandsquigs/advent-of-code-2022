@@ -98,6 +98,9 @@ fn get_edge_lines(matrix: &Vec<Vec<u32>>, point: (usize, usize)) -> Vec<Vec<u32>
     // y direction
     if y < height - 1 {
         let mut line: Vec<u32> = vec![];
+
+        // Clippy can shut up here because this is more readable
+        #[allow(clippy::needless_range_loop)]
         for i in y + 1..height {
             line.push(matrix[i][x])
         }
