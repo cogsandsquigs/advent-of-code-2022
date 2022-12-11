@@ -68,7 +68,7 @@ fn run_worried_round(monkeys: &mut [Monkey], modulo: usize) {
             item = monkeys[index].operation.run(item);
 
             // Stress relief?
-            item = item % modulo;
+            item %= modulo;
 
             // Update the inspected times counter
             monkeys[index].inspected_times += 1;
