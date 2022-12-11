@@ -77,66 +77,6 @@ fn register_timeline(instructions: &[Instruction]) -> Vec<i64> {
     timeline
 }
 
-// fn simulate(instructions: &[Instruction], stop_cycle: usize) -> i64 {
-//     let mut register_x = 1;
-//     let mut cycles = 0;
-//     let mut collect_at_cycle = 20;
-//     let mut signal_strengths = 0;
-
-//     for instruction in instructions {
-//         cycles += 1;
-
-//         match instruction {
-//             Instruction::Nop => {}
-//             Instruction::Addx(value) => {
-//                 // Do this before because we could have cycle update in middle of adding
-//                 update(
-//                     &mut register_x,
-//                     &mut collect_at_cycle,
-//                     cycles,
-//                     stop_cycle,
-//                     &mut signal_strengths,
-//                 );
-
-//                 // Addition takes two cycles
-//                 cycles += 1;
-
-//                 register_x += value;
-//             }
-//         }
-
-//         update(
-//             &mut register_x,
-//             &mut collect_at_cycle,
-//             cycles,
-//             stop_cycle,
-//             &mut signal_strengths,
-//         )
-//     }
-
-//     signal_strengths
-// }
-
-// fn update(
-//     register: &mut i64,
-//     collect_at_cycle: &mut usize,
-//     cycles: usize,
-//     stop_cycle: usize,
-//     signal_strengths: &mut i64,
-// ) {
-//     if cycles >= *collect_at_cycle && cycles <= stop_cycle {
-//         *collect_at_cycle += 40;
-//         *signal_strengths += *register * (cycles as i64);
-
-//         println!(
-//             "Cycle: {}, Register: {}, Signal Strength: {}",
-//             cycles,
-//             register,
-//             *register * (cycles as i64)
-//         );
-//     }
-// }
-
 fn instructions(input: &str) -> Vec<Instruction> {
     input
         .lines()
