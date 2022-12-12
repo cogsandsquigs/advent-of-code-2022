@@ -26,40 +26,34 @@ fn part_2(input: &str) -> usize {
         })
         .collect();
 
-    let mut shortest = usize::MAX;
-
-    for starting_point in starting_points {
-        let Ok(steps) = dijkstra_search_steps(&heightmap, starting_point, ending_point) else {
-            continue;
-        };
-
-        if steps < shortest {
-            shortest = steps;
-        }
-    }
-
-    shortest
+    astar_search_steps(&heightmap, &starting_points, ending_point).expect("No path found!")
 }
 
 fn part_1(input: &str) -> usize {
     let (heightmap, starting_point, ending_point) = heightmap(input);
 
-    dijkstra_search_steps(&heightmap, starting_point, ending_point).unwrap()
+    astar_search_steps(&heightmap, &[starting_point], ending_point).unwrap()
 }
 
-fn dijkstra_search_steps(
+fn astar_search_steps(
     heightmap: &Vec<Vec<usize>>,
-    starting_point: (usize, usize),
+    starting_points: &[(usize, usize)],
     ending_point: (usize, usize),
 ) -> Result<usize, String> {
     let mut distances: HashMap<(usize, usize), usize> = HashMap::new();
     let mut queue: HashSet<(usize, usize)> = HashSet::new();
 
-    distances.insert(starting_point, 0);
-    queue.insert(starting_point);
+    starting_points.iter().for_each(|&point| {
+        distances.insert(point, 0);
+        queue.insert(point);
+    });
 
     while !queue.is_empty() {
-        let current_point = shortest_point(&distances, &queue);
+        let current_point = *queue
+            .iter()
+            // Get minimum of both distance from start and distance to end
+            .min_by_key(|&point| distances[point] + astar_heuristic(*point, ending_point))
+            .unwrap();
         queue.remove(&current_point);
 
         if current_point == ending_point {
@@ -81,14 +75,8 @@ fn dijkstra_search_steps(
     Err(String::from("No path found!"))
 }
 
-fn shortest_point(
-    distances: &HashMap<(usize, usize), usize>,
-    points: &HashSet<(usize, usize)>,
-) -> (usize, usize) {
-    *points
-        .iter()
-        .min_by_key(|point| distances[point])
-        .expect("No shortest point found")
+fn astar_heuristic((x, y): (usize, usize), (end_x, end_y): (usize, usize)) -> usize {
+    (x as isize - end_x as isize).unsigned_abs() + (y as isize - end_y as isize).unsigned_abs()
 }
 
 fn orthogonal_neighbors_walkable(
