@@ -14,7 +14,7 @@ fn main() -> Result<()> {
 }
 
 fn part_2(input: &str) -> usize {
-    let (heightmap, _, ending_point) = heightmap(input);
+    let heightmap = heightmap(input);
 
     let starting_points: Vec<(usize, usize)> = heightmap
         .iter()
@@ -26,11 +26,41 @@ fn part_2(input: &str) -> usize {
         })
         .collect();
 
+    let ending_point = input
+        .lines()
+        .enumerate()
+        .find_map(|(y, line)| {
+            line.chars()
+                .enumerate()
+                .find_map(|(x, c)| if c == 'E' { Some((x, y)) } else { None })
+        })
+        .expect("No ending point found");
+
     astar_search_steps(&heightmap, &starting_points, ending_point).expect("No path found!")
 }
 
 fn part_1(input: &str) -> usize {
-    let (heightmap, starting_point, ending_point) = heightmap(input);
+    let heightmap = heightmap(input);
+
+    let starting_point = input
+        .lines()
+        .enumerate()
+        .find_map(|(y, line)| {
+            line.chars()
+                .enumerate()
+                .find_map(|(x, c)| if c == 'S' { Some((x, y)) } else { None })
+        })
+        .expect("No starting point found");
+
+    let ending_point = input
+        .lines()
+        .enumerate()
+        .find_map(|(y, line)| {
+            line.chars()
+                .enumerate()
+                .find_map(|(x, c)| if c == 'E' { Some((x, y)) } else { None })
+        })
+        .expect("No ending point found");
 
     astar_search_steps(&heightmap, &[starting_point], ending_point).unwrap()
 }
@@ -114,40 +144,18 @@ fn orthogonal_neighbors(
     neighbors
 }
 
-fn heightmap(input: &str) -> (Vec<Vec<usize>>, (usize, usize), (usize, usize)) {
-    let starting_point = input
-        .lines()
-        .enumerate()
-        .find_map(|(y, line)| {
-            line.chars()
-                .enumerate()
-                .find_map(|(x, c)| if c == 'S' { Some((x, y)) } else { None })
-        })
-        .expect("No starting point found");
-
-    let ending_point = input
-        .lines()
-        .enumerate()
-        .find_map(|(y, line)| {
-            line.chars()
-                .enumerate()
-                .find_map(|(x, c)| if c == 'E' { Some((x, y)) } else { None })
-        })
-        .expect("No ending point found");
-
-    let heightmap = input
+fn heightmap(input: &str) -> Vec<Vec<usize>> {
+    input
         .lines()
         .map(|line| {
             line.chars()
                 .map(|c| match c {
-                    'a'..='z' => c as usize - 'a' as usize + 1, // Height starts at 1, so we can subtract 1 safely
-                    'E' => 26, // Highest point, same elevation as 'z'
-                    'S' => 1,  // Lowest point, same elevation as 'a'
+                    'a'..='z' => c as usize - 'a' as usize, // Height starts at 1, so we can subtract 1 safely
+                    'E' => 25,                              // Highest point, same elevation as 'z'
+                    'S' => 0,                               // Lowest point, same elevation as 'a'
                     _ => unreachable!("Invalid character '{c}'"),
                 })
                 .collect()
         })
-        .collect();
-
-    (heightmap, starting_point, ending_point)
+        .collect()
 }
