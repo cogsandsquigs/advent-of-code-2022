@@ -82,7 +82,7 @@ fn astar_search_steps(
         let current_point = *queue
             .iter()
             // Get minimum of both distance from start and distance to end
-            .min_by_key(|&point| distances[point] + astar_heuristic(*point, ending_point))
+            .min_by_key(|&point| distances[point] + astar_heuristic(point, ending_point))
             .unwrap();
         queue.remove(&current_point);
 
@@ -105,8 +105,8 @@ fn astar_search_steps(
     Err(String::from("No path found!"))
 }
 
-fn astar_heuristic((x, y): (usize, usize), (end_x, end_y): (usize, usize)) -> usize {
-    (x as isize - end_x as isize).unsigned_abs() + (y as isize - end_y as isize).unsigned_abs()
+fn astar_heuristic((x, y): &(usize, usize), (end_x, end_y): (usize, usize)) -> usize {
+    (*x as isize - end_x as isize).unsigned_abs() + (*y as isize - end_y as isize).unsigned_abs()
 }
 
 fn orthogonal_neighbors_walkable(
