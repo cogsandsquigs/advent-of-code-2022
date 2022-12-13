@@ -1,9 +1,9 @@
+use advent_utils::files::read;
 use anyhow::Result;
 use std::ops::RangeInclusive;
-use utils::files::read_file_string;
 
 fn main() -> Result<()> {
-    let input = read_file_string("day-04/input.txt")?;
+    let input = read("day-04/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 

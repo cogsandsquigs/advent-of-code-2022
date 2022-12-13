@@ -1,8 +1,8 @@
+use advent_utils::files::read;
 use anyhow::Result;
-use utils::files::read_file_string;
 
 fn main() -> Result<()> {
-    let input = read_file_string("day-06/input.txt")?;
+    let input = read("day-06/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 

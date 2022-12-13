@@ -1,3 +1,4 @@
+use advent_utils::files::read;
 use anyhow::Result;
 use nom::{
     branch::alt,
@@ -7,10 +8,9 @@ use nom::{
     sequence::{delimited, separated_pair},
     IResult,
 };
-use utils::files::read_file_string;
 
 fn main() -> Result<()> {
-    let input = read_file_string("day-05/input.txt")?;
+    let input = read("day-05/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 

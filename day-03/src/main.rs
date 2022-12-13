@@ -1,9 +1,9 @@
+use advent_utils::files::read;
 use anyhow::Result;
 use itertools::Itertools;
-use utils::files::read_file_string;
 
 fn main() -> Result<()> {
-    let input = read_file_string("day-03/input.txt")?;
+    let input = read("day-03/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 

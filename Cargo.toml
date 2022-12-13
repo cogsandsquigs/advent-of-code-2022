@@ -1,6 +1,7 @@
 [workspace]
 	# All the crates
 	members = [
+		"advent-utils",
 		"day-01",
 		"day-02",
 		"day-03",
@@ -14,7 +15,6 @@
 		"day-11",
 		"day-12",
 		"day-13",
-		"utils",
 	]
 
 	[workspace.package]

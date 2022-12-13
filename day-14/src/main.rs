@@ -2,7 +2,7 @@ use advent_utils::files::read;
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    let input = read("day-13/input.test.txt")?;
+    let input = read("day-14/input.test.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 

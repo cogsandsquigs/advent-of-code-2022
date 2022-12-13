@@ -7,5 +7,5 @@
 	# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-	anyhow = "1.0.66"
-	utils  = { path = "../utils" }
+	advent-utils = { path = "../advent-utils" }
+	anyhow       = "1.0.66"
