@@ -9,3 +9,4 @@
 [dependencies]
 	advent-utils = { path = "../advent-utils" }
 	anyhow       = "1.0.66"
+	nom          = "7.1.1"
