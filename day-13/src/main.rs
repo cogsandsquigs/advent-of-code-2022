@@ -9,6 +9,7 @@ use nom::{
     sequence::{delimited, separated_pair},
     IResult,
 };
+use std::cmp::Ordering;
 
 fn main() -> Result<()> {
     let input = read("day-13/input.txt")?;
@@ -33,11 +34,11 @@ fn part_2(input: &str) -> usize {
     packets.sort_by(|a, b| {
         let order = correct_order(a, b);
         if order == Some(true) {
-            std::cmp::Ordering::Less
+            Ordering::Less
         } else if order == Some(false) {
-            std::cmp::Ordering::Greater
+            Ordering::Greater
         } else {
-            std::cmp::Ordering::Equal
+            Ordering::Equal
         }
     });
 
