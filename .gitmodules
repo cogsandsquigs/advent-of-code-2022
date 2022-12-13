@@ -1,4 +1,4 @@
 [submodule "advent-utils"]
 	path = advent-utils
-	url = https://github.com/cogsandsquigs/advent-utils
+	url = https://github.com/cogsandsquigs/advent-utils.git
 	branch = main
