@@ -1,4 +1,4 @@
-use advent_utils::{files::read, parsing::to_matrix};
+use advent_utils::{files::read, parsing::Parseable};
 use anyhow::Result;
 use std::collections::{HashMap, HashSet};
 
@@ -144,13 +144,14 @@ fn orthogonal_neighbors(
 }
 
 fn heightmap(input: &str) -> Vec<Vec<usize>> {
-    to_matrix(input, |c| {
-        Ok(match c {
-            'a'..='z' => c as usize - 'a' as usize, // Height starts at 1, so we can subtract 1 safely
-            'E' => 25,                              // Highest point, same elevation as 'z'
-            'S' => 0,                               // Lowest point, same elevation as 'a'
-            _ => return Err("Invalid character '{c}'"),
+    input
+        .to_matrix(|c| {
+            Ok(match c {
+                'a'..='z' => c as usize - 'a' as usize, // Height starts at 1, so we can subtract 1 safely
+                'E' => 25,                              // Highest point, same elevation as 'z'
+                'S' => 0,                               // Lowest point, same elevation as 'a'
+                _ => return Err("Invalid character '{c}'"),
+            })
         })
-    })
-    .unwrap()
+        .unwrap()
 }
