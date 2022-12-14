@@ -1,7 +1,7 @@
 use advent_utils::{files::read, point::Point};
 use anyhow::Result;
 use itertools::Itertools;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 fn main() -> Result<()> {
     let input = read("day-14/input.test.txt")?;
@@ -13,123 +13,165 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/// Adapted from PBearson's solution
 fn part_2(input: &str) -> usize {
-    // let mut ceiling = ceiling_map(input);
-    // let mut sand_falls = 0;
-    // let barrier = ceiling.iter().map(|p| p.y).max().unwrap() + 2;
-    // loop {
-    //     let mut lowest = get_lowest_point_with_barrier(&Point::new(500, 0), &ceiling, barrier);
+    let (min_x, max_x, max_y) = dimensions(input);
+    println!("Dimensions: {} {} {}", min_x, max_x, max_y);
+    let ceiling = ceiling_grid(input, (min_x, max_x, max_y));
 
-    //     // Traverse down the ceiling until we reach the bottom.
-    //     loop {
-    //         if lowest.y == barrier - 1 {
-    //             break;
-    //         } else if let Some(point) = can_go_left(&lowest, &ceiling) {
-    //             lowest = point;
-    //         } else if let Some(point) = can_go_right(&lowest, &ceiling) {
-    //             lowest = point;
-    //         } else {
-    //             break;
-    //         }
-
-    //         lowest = get_lowest_point_with_barrier(&lowest, &ceiling, barrier);
-    //     }
-
-    //     if lowest == Point::new(500, 0) {
-    //         break;
-    //     }
-
-    //     ceiling.insert(lowest);
-    //     sand_falls += 1;
-
-    //     print_ceiling_map(&ceiling);
-    // }
-
-    // sand_falls + 1 // for the last sand to get to 500,0
-    todo!()
+    count_sand(ceiling)
 }
 
-/// Gets the lowest point beneath the given point that is on top of the lowest point beneath the given
-/// point that is rock or sand. If the given point is on top of rock or sand, the given point is returned.
-/// If there is no point beneath the given point, then the original x coordinate is returned, with y coordinate
-/// of `barrier`.
-fn get_lowest_point_with_barrier(point: &Point, ceiling: &HashSet<Point>, barrier: usize) -> Point {
-    ceiling
-        .iter()
-        .filter(|p| p.x == point.x && p.y > point.y)
-        .min_by_key(|p| p.y)
-        .map(|p| Point::new(p.x, p.y - 1))
-        .unwrap_or_else(|| Point::new(point.x, barrier - 1))
+fn count_sand(mut grid: Vec<Vec<bool>>) -> usize {
+    let mut count = 0;
+
+    for (i, row) in grid.clone().into_iter().enumerate() {
+        let mut rowcount = 1 + (i * 2) - row.iter().filter(|&&x| x).count();
+
+        // Check top 3 rows
+        if i > 0 {
+            for j in 1..row.len() - 1 {
+                let p1 = grid[i - 1][j - 1];
+                let p2 = grid[i - 1][j];
+                let p3 = grid[i - 1][j + 1];
+
+                if !grid[i][j] && p1 && p2 && p3 {
+                    grid[i][j] = true;
+                    rowcount -= 1;
+                }
+            }
+        }
+
+        count += rowcount
+    }
+
+    count
+}
+
+fn ceiling_grid(input: &str, (min_x, max_x, max_y): (usize, usize, usize)) -> Vec<Vec<bool>> {
+    let mut ceiling: HashMap<usize, Vec<Point>> = HashMap::new();
+
+    input.lines().for_each(|line| {
+        line.split(" -> ")
+            .map(|point| {
+                let mut parts = point.split(',');
+
+                let x = parts.next().unwrap();
+                let y = parts.next().unwrap();
+
+                let x = x.parse::<usize>().expect("Failed to parse x coordinate");
+                let y = y.parse::<usize>().expect("Failed to parse y coordinate");
+
+                Point::new(x, y)
+            })
+            .tuple_windows()
+            .flat_map(|(a, b)| a.line(&b))
+            .for_each(|point| {
+                ceiling.entry(point.x).or_insert_with(Vec::new).push(point);
+            });
+    });
+
+    let mut grid = vec![vec![false; max_x - min_x + 1]; max_y];
+
+    for (_, points) in ceiling {
+        for point in points {
+            grid[point.y][point.x - min_x] = true;
+        }
+    }
+
+    grid
+}
+
+// Gets  min x, max x,max y
+fn dimensions(input: &str) -> (usize, usize, usize) {
+    let mut min_x = usize::MAX;
+    let mut max_x = usize::MIN;
+    let mut max_y = usize::MIN;
+
+    input.lines().for_each(|line| {
+        line.split(" -> ")
+            .map(|point| {
+                let mut parts = point.split(',');
+
+                let x = parts.next().unwrap();
+                let y = parts.next().unwrap();
+
+                let x = x.parse::<usize>().expect("Failed to parse x coordinate");
+                let y = y.parse::<usize>().expect("Failed to parse y coordinate");
+
+                Point::new(x, y)
+            })
+            .for_each(|point| {
+                if point.x < min_x {
+                    min_x = point.x;
+                }
+
+                if point.x > max_x {
+                    max_x = point.x;
+                }
+
+                if point.y > max_y {
+                    max_y = point.y;
+                }
+            });
+    });
+
+    (min_x, max_x, max_y + 2)
 }
 
 fn part_1(input: &str) -> usize {
     let mut ceiling = ceiling_map(input);
     let mut sand_falls = 0;
 
-    print_ceiling_map(&ceiling);
-
     'done: loop {
-        let mut lowest = get_lowest_point(&Point::new(500, 0), &ceiling).unwrap();
+        let mut lowest = lowest_point(&Point::new(500, 0), &ceiling);
 
-        // Traverse down the ceiling until we reach the bottom.
         loop {
-            if get_lowest_point(&lowest, &ceiling) != Some(lowest) {
-                let Some(point) = get_lowest_point(&lowest, &ceiling) else {
-                    break 'done;
-                };
-
-                lowest = point;
-            } else if let Some(point) = can_go_left(&lowest, &ceiling) {
-                lowest = point;
-            } else if let Some(point) = can_go_right(&lowest, &ceiling) {
-                lowest = point;
+            if lowest.is_none() {
+                break 'done;
+            } else if let Some(point) = can_go_left(&lowest.unwrap(), &ceiling) {
+                lowest = lowest_point(&point, &ceiling);
+            } else if let Some(point) = can_go_right(&lowest.unwrap(), &ceiling) {
+                lowest = lowest_point(&point, &ceiling);
             } else {
                 break;
             }
         }
 
-        ceiling.entry(lowest.x).and_modify(|points| {
-            points.push(lowest);
-            points.sort_by_key(|p| p.y);
-        });
-
+        let v = ceiling.entry(lowest.unwrap().x).or_insert_with(Vec::new);
+        v.push(lowest.unwrap());
+        v.sort_by_key(|p| p.y);
         sand_falls += 1;
     }
 
     sand_falls
 }
 
-/// Checks if the given point can go one down and right. If so, returns the point one down and one
-/// right. Otherwise, returns None.
 fn can_go_right(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
     let right = Point::new(point.x + 1, point.y + 1);
 
-    if ceiling.get(&right.x).is_none() || !ceiling.get(&right.x).unwrap().contains(&right) {
-        Some(right)
-    } else {
+    if ceiling.contains_key(&right.x) && ceiling.get(&right.x).unwrap().contains(&right) {
         None
+    } else {
+        Some(right)
     }
 }
 
-/// Checks if the given point can go one down and left. If so, returns the point one down and one
-/// left. Otherwise, returns None.
 fn can_go_left(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
     let left = Point::new(point.x - 1, point.y + 1);
 
-    if ceiling.get(&left.x).is_none() || !ceiling.get(&left.x).unwrap().contains(&left) {
-        Some(left)
-    } else {
+    if ceiling.contains_key(&left.x) && ceiling.get(&left.x).unwrap().contains(&left) {
         None
+    } else {
+        Some(left)
     }
 }
 
-/// Gets the lowest point beneath the given point that is on top of the lowest point beneath the given
-/// point that is rock or sand. If the given point is on top of rock or sand, the given point is returned.
-/// If there is no point beneath the given point, then `None` is returned.
-fn get_lowest_point(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
+fn lowest_point(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
     ceiling
         .get(&point.x)
-        .and_then(|points| points.last().cloned())
+        .and_then(|points| points.iter().filter(|p| p.y > point.y).min_by_key(|p| p.y))
+        .map(|p| Point::new(p.x, p.y - 1))
         .or(None)
 }
 
