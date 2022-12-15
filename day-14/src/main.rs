@@ -81,22 +81,6 @@ fn part_1(input: &str) -> usize {
     i
 }
 
-fn print_grid(grid: &Grid<Tile>) {
-    for y in 0..=9 {
-        for x in 494..=506 {
-            print!(
-                "{}",
-                match grid[Point::new(x, y)] {
-                    Tile::Empty => '.',
-                    Tile::Rock => '#',
-                    Tile::Sand => '+',
-                }
-            );
-        }
-        println!();
-    }
-}
-
 fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
     let mut current = point;
 
