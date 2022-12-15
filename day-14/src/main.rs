@@ -37,7 +37,7 @@ fn part_2(input: &str) -> usize {
     i + 1
 }
 
-fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point, max_y: i32) -> Point {
+fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point, max_y: i64) -> Point {
     let mut current = point;
 
     loop {
@@ -71,7 +71,7 @@ fn part_1(input: &str) -> usize {
     loop {
         let new = drop_sand_p1(&mut cave, Point::new(500, 0));
 
-        if new.y >= cave.height as i32 - 1 {
+        if new.y >= cave.height as i64 - 1 {
             break;
         }
 
@@ -98,7 +98,7 @@ fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
 
         current = found;
 
-        if current.y >= grid.height as i32 - 1 {
+        if current.y >= grid.height as i64 - 1 {
             break;
         }
     }

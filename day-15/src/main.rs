@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use advent_utils::{files::read, point::Point};
 use anyhow::Result;
 use nom::{
@@ -11,7 +9,7 @@ use nom::{
 };
 
 fn main() -> Result<()> {
-    let input = read("day-15/input.test.txt")?;
+    let input = read("day-15/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 
@@ -20,76 +18,72 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn part_2(input: &str) -> i32 {
-    // let sensors = parse(input);
-    // let min_bound: i32 = 0;
-    // let max_bound: i32 = 4000000; // 20 for test, 4000000 for actual input
-    // let mut points_set: HashSet<Point> = HashSet::new();
-
-    // // Prime the set
-    // for y in min_bound..=max_bound {
-    //     for x in min_bound..=max_bound {
-    //         println!("inserting ({}, {})", x, y);
-    //         points_set.insert(Point::new(x, y));
-    //     }
-    // }
-
-    // for sensor in sensors {
-    //     println!("{} points left", points_set.len());
-    //     let points = sensor.points_within_range();
-    //     points_set.retain(|point| !points.contains(point));
-    // }
-
-    // println!("{} points left", points_set.len());
-    // println!("{:?}", points_set);
-
-    // let point = points_set.iter().next().expect("No points left");
-
-    // point.x * 4000000 + point.y
-
-    todo!()
-}
-
-fn part_1(input: &str) -> i32 {
+fn part_2(input: &str) -> i64 {
     let sensors = parse(input);
-    let y_level: i32 = 10; // 10 for test, 2000000 for actual input
-    let mut intervals = Vec::new();
-    let mut beacon_count = 0;
+    let x_min = 0;
+    let x_max = 4000000; // 20 for test, 4000000 for actual input
 
-    for sensor in sensors {
-        if let Some(interval) = x_interval_at_y(sensor, y_level) {
-            intervals.push(interval);
+    for y_level in 0.. {
+        let mut intervals = Vec::new();
 
-            if sensor.closest_beacon.y == y_level
-                && sensor.closest_beacon.x >= interval.0
-                && sensor.closest_beacon.x <= interval.1
-            {
-                beacon_count += 1;
+        for sensor in sensors.iter() {
+            if let Some(interval) = x_interval_at_y(*sensor, y_level) {
+                intervals.push(interval);
+            }
+        }
+
+        merge_intervals(&mut intervals);
+
+        if intervals.len() > 1 {
+            // Find gap between intervals
+            for i in 0..intervals.len() - 1 {
+                let (a, b) = intervals[i];
+                let (c, d) = intervals[i + 1];
+
+                if a < x_min && b < x_min {
+                    continue;
+                }
+
+                if c > x_max && d > x_max {
+                    continue;
+                }
+
+                let gap = (c - b).abs();
+
+                if gap > 1 {
+                    return (b + 1) * 4000000 + y_level;
+                }
             }
         }
     }
 
-    println!("Intervals: {:?}", intervals);
+    unreachable!("No point found")
+}
+
+fn part_1(input: &str) -> i64 {
+    let sensors = parse(input);
+    let y_level: i64 = 2000000; // 10 for test, 2000000 for actual input
+    let mut intervals = Vec::new();
+
+    for sensor in sensors {
+        if let Some(interval) = x_interval_at_y(sensor, y_level) {
+            intervals.push(interval);
+        }
+    }
 
     merge_intervals(&mut intervals);
 
-    println!("Intervals: {:?}", intervals);
-
-    intervals
-        .iter()
-        .map(|(a, b)| (b - a).abs() + 1)
-        .sum::<i32>()
-        - beacon_count
+    intervals.iter().map(|(a, b)| (b - a).abs()).sum()
 }
 
-fn merge_intervals(intervals: &mut Vec<(i32, i32)>) {
+fn merge_intervals(intervals: &mut Vec<(i64, i64)>) {
     intervals.sort_by(|a, b| a.0.cmp(&b.0));
 
     let mut index = 0;
 
     for i in 0..intervals.len() {
         if intervals[index].1 >= intervals[i].0 {
-            intervals[index].1 = intervals[i].1;
+            intervals[index].1 = intervals[index].1.max(intervals[i].1);
         } else {
             index += 1;
             intervals[index] = intervals[i];
@@ -100,9 +94,9 @@ fn merge_intervals(intervals: &mut Vec<(i32, i32)>) {
 }
 
 /// Returns `None` if the y-level is not within range of the sensor
-fn x_interval_at_y(sensor: Sensor, y: i32) -> Option<(i32, i32)> {
+fn x_interval_at_y(sensor: Sensor, y: i64) -> Option<(i64, i64)> {
     // Get distance to beacon
-    let beacon_distance = sensor.distance_to_beacon() as i32;
+    let beacon_distance = sensor.distance_to_beacon();
     // Get distance to y level
     let y_distance = (y - sensor.position.y).abs();
 
@@ -114,12 +108,6 @@ fn x_interval_at_y(sensor: Sensor, y: i32) -> Option<(i32, i32)> {
     // Get max and min x
     let x_min = sensor.position.x - (beacon_distance - y_distance);
     let x_max = sensor.position.x + (beacon_distance - y_distance);
-
-    println!(
-        "Sensor: {:?}, Beacon: {:?}",
-        sensor.position, sensor.closest_beacon
-    );
-    println!("x_min: {}, x_max: {}", x_min, x_max);
 
     // Return the interval
     Some((x_min, x_max))
@@ -136,19 +124,19 @@ fn parse(input: &str) -> Vec<Sensor> {
 fn parse_line(input: &str) -> IResult<&str, Sensor> {
     let (input, _) = tag("Sensor at x=")(input)?;
     let (input, sensor_x) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i32>()
+        s.parse::<i64>()
     })(input)?;
     let (input, _) = tag(", y=")(input)?;
     let (input, sensor_y) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i32>()
+        s.parse::<i64>()
     })(input)?;
     let (input, _) = tag(": closest beacon is at x=")(input)?;
     let (input, beacon_x) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i32>()
+        s.parse::<i64>()
     })(input)?;
     let (input, _) = tag(", y=")(input)?;
     let (input, beacon_y) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i32>()
+        s.parse::<i64>()
     })(input)?;
 
     Ok((
@@ -174,7 +162,7 @@ impl Sensor {
         }
     }
 
-    fn distance_to_beacon(&self) -> u32 {
+    fn distance_to_beacon(&self) -> i64 {
         self.position.manhattan_distance(&self.closest_beacon)
     }
 
@@ -187,14 +175,14 @@ impl Sensor {
     //     point.manhattan_distance(&self.position) <= self.distance_to_beacon()
     // }
 
-    // fn points_within_range_at_y(&self, y: i32) -> Vec<Point> {
+    // fn points_within_range_at_y(&self, y: i64) -> Vec<Point> {
     //     let mut points = Vec::new();
 
     //     // Get distance to y level
     //     let y_distance = (y - self.position.y).abs();
 
-    //     let x_min = self.position.x - (self.distance_to_beacon() as i32 - y_distance);
-    //     let x_max = self.position.x + (self.distance_to_beacon() as i32 - y_distance);
+    //     let x_min = self.position.x - (self.distance_to_beacon() as i64 - y_distance);
+    //     let x_max = self.position.x + (self.distance_to_beacon() as i64 - y_distance);
 
     //     for x in x_min..=x_max {
     //         let point = Point::new(x, y);
@@ -211,11 +199,11 @@ impl Sensor {
     // fn points_within_range(&self) -> Vec<Point> {
     //     let mut points = Vec::new();
 
-    //     let x_min = self.position.x - self.distance_to_beacon() as i32;
-    //     let x_max = self.position.x + self.distance_to_beacon() as i32;
+    //     let x_min = self.position.x - self.distance_to_beacon() as i64;
+    //     let x_max = self.position.x + self.distance_to_beacon() as i64;
 
-    //     let y_min = self.position.y - self.distance_to_beacon() as i32;
-    //     let y_max = self.position.y + self.distance_to_beacon() as i32;
+    //     let y_min = self.position.y - self.distance_to_beacon() as i64;
+    //     let y_max = self.position.y + self.distance_to_beacon() as i64;
 
     //     for x in x_min..=x_max {
     //         for y in y_min..=y_max {
