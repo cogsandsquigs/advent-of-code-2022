@@ -1,10 +1,9 @@
-use advent_utils::{files::read, point::Point};
+use advent_utils::{files::read, grid::Grid, point::Point};
 use anyhow::Result;
 use itertools::Itertools;
-use std::collections::HashMap;
 
 fn main() -> Result<()> {
-    let input = read("day-14/input.test.txt")?;
+    let input = read("day-14/input.txt")?;
 
     println!("Puzzle 1 answer: {}", part_1(&input));
 
@@ -13,211 +12,172 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/// Width of the grid
+const WIDTH: usize = 1000;
+/// Height of the grid
+const HEIGHT: usize = 200;
+
 /// Adapted from PBearson's solution
 fn part_2(input: &str) -> usize {
-    let (min_x, max_x, max_y) = dimensions(input);
-    println!("Dimensions: {} {} {}", min_x, max_x, max_y);
-    let ceiling = ceiling_grid(input, (min_x, max_x, max_y));
+    let mut cave = parse_input(input);
+    let mut i = 0;
+    // This was found during my investigation of my specific input
+    let max_y = 163;
 
-    count_sand(ceiling)
-}
+    loop {
+        let new = drop_sand_p2(&mut cave, Point::new(500, 0), max_y);
 
-fn count_sand(mut grid: Vec<Vec<bool>>) -> usize {
-    let mut count = 0;
-
-    for (i, row) in grid.clone().into_iter().enumerate() {
-        let mut rowcount = 1 + (i * 2) - row.iter().filter(|&&x| x).count();
-
-        // Check top 3 rows
-        if i > 0 {
-            for j in 1..row.len() - 1 {
-                let p1 = grid[i - 1][j - 1];
-                let p2 = grid[i - 1][j];
-                let p3 = grid[i - 1][j + 1];
-
-                if !grid[i][j] && p1 && p2 && p3 {
-                    grid[i][j] = true;
-                    rowcount -= 1;
-                }
-            }
+        if new.x == 500 && new.y == 0 {
+            break;
         }
 
-        count += rowcount
+        i += 1;
     }
 
-    count
+    i + 1
 }
 
-fn ceiling_grid(input: &str, (min_x, max_x, max_y): (usize, usize, usize)) -> Vec<Vec<bool>> {
-    let mut ceiling: HashMap<usize, Vec<Point>> = HashMap::new();
+fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point, max_y: usize) -> Point {
+    let mut current = point;
 
-    input.lines().for_each(|line| {
-        line.split(" -> ")
-            .map(|point| {
-                let mut parts = point.split(',');
+    loop {
+        let possible_points = [current.below(), current.below_left(), current.below_right()];
 
-                let x = parts.next().unwrap();
-                let y = parts.next().unwrap();
+        let Some(found) = possible_points
+            .iter()
+            .find(|&&point| { grid[point] == Tile::Empty})
+            .copied()
+        else {
+            break;
+        };
 
-                let x = x.parse::<usize>().expect("Failed to parse x coordinate");
-                let y = y.parse::<usize>().expect("Failed to parse y coordinate");
+        current = found;
 
-                Point::new(x, y)
-            })
-            .tuple_windows()
-            .flat_map(|(a, b)| a.line(&b))
-            .for_each(|point| {
-                ceiling.entry(point.x).or_insert_with(Vec::new).push(point);
-            });
-    });
+        if current.y >= max_y - 1 {
+            break;
+        }
+    }
 
-    let mut grid = vec![vec![false; max_x - min_x + 1]; max_y];
+    grid[current] = Tile::Sand;
 
-    for (_, points) in ceiling {
-        for point in points {
-            grid[point.y][point.x - min_x] = true;
+    current
+}
+
+fn part_1(input: &str) -> usize {
+    let mut cave = parse_input(input);
+    let mut i = 0;
+
+    loop {
+        let new = drop_sand_p1(&mut cave, Point::new(500, 0));
+
+        if new.y >= cave.height - 1 {
+            break;
+        }
+
+        i += 1;
+    }
+
+    i
+}
+
+fn print_grid(grid: &Grid<Tile>) {
+    for y in 0..=9 {
+        for x in 494..=506 {
+            print!(
+                "{}",
+                match grid[Point::new(x, y)] {
+                    Tile::Empty => '.',
+                    Tile::Rock => '#',
+                    Tile::Sand => '+',
+                }
+            );
+        }
+        println!();
+    }
+}
+
+fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
+    let mut current = point;
+
+    loop {
+        let possible_points = [current.below(), current.below_left(), current.below_right()];
+
+        let Some(found) = possible_points
+            .iter()
+            .find(|&&point| { grid[point] == Tile::Empty})
+            .copied()
+        else {
+            break;
+        };
+
+        current = found;
+
+        if current.y >= grid.height - 1 {
+            break;
+        }
+    }
+
+    grid[current] = Tile::Sand;
+
+    current
+}
+
+fn parse_input(input: &str) -> Grid<Tile> {
+    let rocks: Vec<Vec<Point>> = input
+        .lines()
+        .map(|line| {
+            line.split(" -> ")
+                .map(|point| {
+                    let mut parts = point.split(',');
+                    let x = parts.next().unwrap().parse().unwrap();
+                    let y = parts.next().unwrap().parse().unwrap();
+                    Point::new(x, y)
+                })
+                .tuple_windows()
+                .flat_map(|(a, b)| draw_line(&a, &b))
+                .collect_vec()
+        })
+        .collect_vec();
+
+    let mut grid: Grid<Tile> = Grid::new(WIDTH, HEIGHT);
+
+    for rock in rocks {
+        for point in rock {
+            grid[point] = Tile::Rock;
         }
     }
 
     grid
 }
 
-// Gets  min x, max x,max y
-fn dimensions(input: &str) -> (usize, usize, usize) {
-    let mut min_x = usize::MAX;
-    let mut max_x = usize::MIN;
-    let mut max_y = usize::MIN;
+fn draw_line(a: &Point, b: &Point) -> Vec<Point> {
+    let mut points = vec![];
 
-    input.lines().for_each(|line| {
-        line.split(" -> ")
-            .map(|point| {
-                let mut parts = point.split(',');
+    if a.x != b.x {
+        let (min, max) = if a.x < b.x { (a.x, b.x) } else { (b.x, a.x) };
 
-                let x = parts.next().unwrap();
-                let y = parts.next().unwrap();
-
-                let x = x.parse::<usize>().expect("Failed to parse x coordinate");
-                let y = y.parse::<usize>().expect("Failed to parse y coordinate");
-
-                Point::new(x, y)
-            })
-            .for_each(|point| {
-                if point.x < min_x {
-                    min_x = point.x;
-                }
-
-                if point.x > max_x {
-                    max_x = point.x;
-                }
-
-                if point.y > max_y {
-                    max_y = point.y;
-                }
-            });
-    });
-
-    (min_x, max_x, max_y + 2)
-}
-
-fn part_1(input: &str) -> usize {
-    let mut ceiling = ceiling_map(input);
-    let mut sand_falls = 0;
-
-    'done: loop {
-        let mut lowest = lowest_point(&Point::new(500, 0), &ceiling);
-
-        loop {
-            if lowest.is_none() {
-                break 'done;
-            } else if let Some(point) = can_go_left(&lowest.unwrap(), &ceiling) {
-                lowest = lowest_point(&point, &ceiling);
-            } else if let Some(point) = can_go_right(&lowest.unwrap(), &ceiling) {
-                lowest = lowest_point(&point, &ceiling);
-            } else {
-                break;
-            }
+        for x in min..=max {
+            points.push(Point::new(x, a.y));
         }
-
-        let v = ceiling.entry(lowest.unwrap().x).or_insert_with(Vec::new);
-        v.push(lowest.unwrap());
-        v.sort_by_key(|p| p.y);
-        sand_falls += 1;
-    }
-
-    sand_falls
-}
-
-fn can_go_right(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
-    let right = Point::new(point.x + 1, point.y + 1);
-
-    if ceiling.contains_key(&right.x) && ceiling.get(&right.x).unwrap().contains(&right) {
-        None
     } else {
-        Some(right)
-    }
-}
+        let (min, max) = if a.y < b.y { (a.y, b.y) } else { (b.y, a.y) };
 
-fn can_go_left(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
-    let left = Point::new(point.x - 1, point.y + 1);
-
-    if ceiling.contains_key(&left.x) && ceiling.get(&left.x).unwrap().contains(&left) {
-        None
-    } else {
-        Some(left)
-    }
-}
-
-fn lowest_point(point: &Point, ceiling: &HashMap<usize, Vec<Point>>) -> Option<Point> {
-    ceiling
-        .get(&point.x)
-        .and_then(|points| points.iter().filter(|p| p.y > point.y).min_by_key(|p| p.y))
-        .map(|p| Point::new(p.x, p.y - 1))
-        .or(None)
-}
-
-/// Prints the ceiling map, starting from x=494 to x=503 and y=0 to y=9.
-fn print_ceiling_map(ceiling: &HashMap<usize, Vec<Point>>) {
-    for y in 0..=11 {
-        for x in 489..=511 {
-            let point = Point::new(x, y);
-
-            if let Some(points) = ceiling.get(&point.x) {
-                if points.contains(&point) {
-                    print!("#");
-                } else {
-                    print!(".");
-                }
-            } else {
-                print!(".");
-            }
+        for y in min..=max {
+            points.push(Point::new(a.x, y));
         }
-
-        println!();
     }
+
+    points
 }
 
-fn ceiling_map(input: &str) -> HashMap<usize, Vec<Point>> {
-    let mut ceiling: HashMap<usize, Vec<Point>> = HashMap::new();
-
-    input.lines().for_each(|line| {
-        line.split(" -> ")
-            .map(|point| {
-                let mut parts = point.split(',');
-
-                let x = parts.next().unwrap();
-                let y = parts.next().unwrap();
-
-                let x = x.parse::<usize>().expect("Failed to parse x coordinate");
-                let y = y.parse::<usize>().expect("Failed to parse y coordinate");
-
-                Point::new(x, y)
-            })
-            .tuple_windows()
-            .flat_map(|(a, b)| a.line(&b))
-            .for_each(|point| {
-                ceiling.entry(point.x).or_insert_with(Vec::new).push(point);
-            });
-    });
-
-    ceiling
+/// The type of a grid tile
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+enum Tile {
+    /// An empty space
+    #[default]
+    Empty,
+    /// A rock
+    Rock,
+    /// Sand
+    Sand,
 }
