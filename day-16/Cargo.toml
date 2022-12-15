@@ -1,7 +1,7 @@
 [package]
 	authors = { workspace = true }
 	edition = { workspace = true }
-	name    = "day-15"
+	name    = "day-16"
 	version = { workspace = true }
 
 	# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -9,4 +9,3 @@
 [dependencies]
 	advent-utils = { path = "../advent-utils" }
 	anyhow       = "1.0.66"
-	nom          = "7.1.1"
