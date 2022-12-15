@@ -37,11 +37,12 @@ fn part_2(input: &str) -> usize {
     i + 1
 }
 
-fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point, max_y: usize) -> Point {
+fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point, max_y: i32) -> Point {
     let mut current = point;
 
     loop {
-        let possible_points = [current.below(), current.below_left(), current.below_right()];
+        let neighbors = current.neighbors();
+        let possible_points = [neighbors[3], neighbors[6], neighbors[7]];
 
         let Some(found) = possible_points
             .iter()
@@ -70,7 +71,7 @@ fn part_1(input: &str) -> usize {
     loop {
         let new = drop_sand_p1(&mut cave, Point::new(500, 0));
 
-        if new.y >= cave.height - 1 {
+        if new.y >= cave.height as i32 - 1 {
             break;
         }
 
@@ -100,7 +101,8 @@ fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
     let mut current = point;
 
     loop {
-        let possible_points = [current.below(), current.below_left(), current.below_right()];
+        let neighbors = current.neighbors();
+        let possible_points = [neighbors[3], neighbors[6], neighbors[7]];
 
         let Some(found) = possible_points
             .iter()
@@ -112,7 +114,7 @@ fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
 
         current = found;
 
-        if current.y >= grid.height - 1 {
+        if current.y >= grid.height as i32 - 1 {
             break;
         }
     }
