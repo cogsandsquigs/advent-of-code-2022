@@ -9,7 +9,7 @@ use nom::{
 };
 
 fn main() -> Result<()> {
-    let input = read("day-15/input.test.txt")?;
+    let input = read("day-15/input.txt")?;
 
     part_1(&input);
 
@@ -18,7 +18,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-#[solution(15, 1)]
+#[solution(day = "15", part = "2")]
 fn part_2(input: &str) -> i64 {
     let sensors = parse(input);
     let x_min = 0;
@@ -61,7 +61,7 @@ fn part_2(input: &str) -> i64 {
     unreachable!("No point found")
 }
 
-#[solution]
+#[solution(day = "15", part = "1")]
 fn part_1(input: &str) -> i64 {
     let sensors = parse(input);
     let y_level: i64 = 2000000; // 10 for test, 2000000 for actual input
@@ -167,56 +167,4 @@ impl Sensor {
     fn distance_to_beacon(&self) -> i64 {
         self.position.manhattan_distance(&self.closest_beacon)
     }
-
-    // fn distance_to_point(&self, point: &Point) -> u32 {
-    //     self.position.manhattan_distance(point)
-    // }
-
-    // fn point_within_beacon_range(&self, point: Point) -> bool {
-    //     // Less than because we know there won't ever be a tie
-    //     point.manhattan_distance(&self.position) <= self.distance_to_beacon()
-    // }
-
-    // fn points_within_range_at_y(&self, y: i64) -> Vec<Point> {
-    //     let mut points = Vec::new();
-
-    //     // Get distance to y level
-    //     let y_distance = (y - self.position.y).abs();
-
-    //     let x_min = self.position.x - (self.distance_to_beacon() as i64 - y_distance);
-    //     let x_max = self.position.x + (self.distance_to_beacon() as i64 - y_distance);
-
-    //     for x in x_min..=x_max {
-    //         let point = Point::new(x, y);
-
-    //         if self.point_within_beacon_range(point) {
-    //             points.push(point);
-    //         }
-    //     }
-
-    //     points
-    // }
-
-    // /// Computes all the possible points within range of the sensor
-    // fn points_within_range(&self) -> Vec<Point> {
-    //     let mut points = Vec::new();
-
-    //     let x_min = self.position.x - self.distance_to_beacon() as i64;
-    //     let x_max = self.position.x + self.distance_to_beacon() as i64;
-
-    //     let y_min = self.position.y - self.distance_to_beacon() as i64;
-    //     let y_max = self.position.y + self.distance_to_beacon() as i64;
-
-    //     for x in x_min..=x_max {
-    //         for y in y_min..=y_max {
-    //             let point = Point::new(x, y);
-
-    //             if self.point_within_beacon_range(point) {
-    //                 points.push(point);
-    //             }
-    //         }
-    //     }
-
-    //     points
-    // }
 }
