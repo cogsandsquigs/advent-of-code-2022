@@ -1,5 +1,6 @@
 use advent_utils::{files::read, macros::solution};
 use anyhow::Result;
+use ndarray::{Array2, Array3};
 use nom::{
     branch::alt,
     bytes::complete::{tag, take},
@@ -31,169 +32,82 @@ fn part_2(input: &str) -> i64 {
 
 #[solution(day = "16", part = "1")]
 fn part_1(input: &str) -> usize {
-    let all_valves = valves(input);
-    let mut visited_valves: HashSet<ValveID> = HashSet::new();
-    let mut remaining_time = 30;
-    let mut current_valve = ValveID::new("AA");
-    let mut total_flow = 0;
-    let mut total_released = 0;
+    let valves = valves(input);
+    let num_valves = valves.len();
+    let path_dists = floyd_warshall(&valves);
 
-    // Visit as many valves as possible
-    while visited_valves.len() < all_valves.len() {
-        let (next_valve, time_to_valve) =
-            next_best_valve(&all_valves, &visited_valves, &current_valve, remaining_time);
-        let next_valve = all_valves.get(&next_valve).unwrap();
-
-        // Update the total released WITHOUT including the current valve.
-        total_released += total_flow * (time_to_valve + 1);
-
-        // Update the total flow.
-        total_flow += next_valve.flow_rate;
-
-        // Update the remaining time. +1 for the time to release the current valve.
-        remaining_time = remaining_time.saturating_sub(time_to_valve + 1);
-
-        // Update the current valve.
-        current_valve = next_valve.id;
-
-        // Mark the valve as visited if we released from it.s
-        visited_valves.insert(current_valve);
-
-        println!(
-            "Visited {} with a new total flow of {} and a total released of {}. Time spent: {}, time remaining: {}",
-            current_valve, total_flow, total_released, time_to_valve + 1, remaining_time
-        );
-
-        // If we've run out of time, stop.
-        if remaining_time == 0 {
-            break;
-        }
-    }
-
-    total_released
+    todo!()
 }
 
-// Gets the next-best valve to visit, and returns the id of the valve, as well as the
-// time it would take to get there.
-fn next_best_valve(
+/// Dynamic-programming algorithm to find the next best valve to open. Returns the total flow rate
+/// released.
+fn open_valves(
     all_valves: &HashMap<ValveID, Valve>,
     visited_valves: &HashSet<ValveID>,
-    current_valve: &ValveID,
+    // Map of pairwise paths and their distances
+    path_dists: &HashMap<(ValveID, ValveID), usize>,
+    current_valve: ValveID,
+    // The remaining time in minutes
     remaining_time: usize,
-) -> (ValveID, usize) {
-    let mut best_valve = all_valves.get(current_valve).unwrap().clone(); // Set best valve to current valve
-    let mut best_score = usize::MIN;
-    let mut best_time = usize::MAX;
-
-    for (id, valve) in all_valves {
-        // Skip any valves we've already visited.
-        if visited_valves.contains(id) {
-            continue;
-        }
-
-        let time_to_valve = bfs(all_valves, current_valve, id);
-
-        // Skip any valves that we can't reach in time.
-        if time_to_valve > remaining_time {
-            continue;
-        }
-
-        // Get the score for this valve, which is the benefit of visiting it.
-        let valve_score = valve.flow_rate * (remaining_time - time_to_valve);
-
-        if valve_score >= best_score {
-            best_valve = valve.clone();
-            best_score = valve_score;
-            best_time = time_to_valve;
-        }
-    }
-
-    (best_valve.id, best_time)
-}
-
-// Finds the shortest route between two valves, and returns the time it would take to traverse that route.
-fn bfs(valves: &HashMap<ValveID, Valve>, start_id: &ValveID, end_id: &ValveID) -> usize {
-    let mut queue = Vec::new();
-    let mut distances = HashMap::new();
-
-    queue.push((start_id, 0));
-    distances.insert(start_id, 0);
-
-    while let Some((current_id, current_distance)) = queue.pop() {
-        let current_valve = valves.get(current_id).unwrap();
-
-        for next_id in &current_valve.leads_to {
-            let next_distance = current_distance + 1;
-
-            if next_id == end_id {
-                return next_distance;
-            }
-
-            if let Some(&existing_distance) = distances.get(&next_id) {
-                if next_distance < existing_distance {
-                    distances.insert(next_id, next_distance);
-                    queue.push((next_id, next_distance));
-                }
-            } else {
-                distances.insert(next_id, next_distance);
-                queue.push((next_id, next_distance));
-            }
-        }
-    }
-
-    unreachable!("No route found between {} and {}", start_id, end_id);
-}
-
-// Finds the most optimal route between two valves, and returns the total pressure released by that route.
-fn find_optimal_score(
-    valves: &HashMap<ValveID, Valve>,
-    total
-    start_id: &ValveID,
-    end_id: &ValveID,
-
+    // The total flow rate composed of all the valves we have opened
+    total_flow: usize,
+    // The total flow rate released
+    released: usize,
 ) -> usize {
-    let mut queue = BinaryHeap::new();
-    let mut distances = HashMap::new();
+    // If we have 1 minute left, we can't open any more valves
+    if remaining_time <= 1 {
+        return released + total_flow * remaining_time;
+    }
+    // 2 minutes left allows us to open the valve we are currently at
+    else if remaining_time == 2 {
+        let valve = all_valves.get(&current_valve).unwrap();
+        return released + total_flow * remaining_time + valve.flow_rate;
+    }
+    // If we have visited all the valves or all except the current one, we can't open any more valves
+    else if visited_valves.len() >= all_valves.len() - 1 {
+        return released + total_flow * remaining_time;
+    }
 
-    queue.push(ValveIDHeapItem(Reverse(0), *start_id));
-    distances.insert(start_id, 0);
+    todo!()
+}
 
-    while let Some(ValveIDHeapItem(Reverse(current_score), current_id)) = queue.pop() {
-        let current_valve = valves.get(&current_id).unwrap();
+/// Floyd-warshall algorithm
+fn floyd_warshall(valves: &HashMap<ValveID, Valve>) -> HashMap<(ValveID, ValveID), usize> {
+    let mut dist = HashMap::new();
 
-        for next_id in &current_valve.leads_to {
-            let next_score = current_score - current_valve.flow_rate as i32;
+    for (valve_id, valve) in valves.iter() {
+        for leads_to in valve.leads_to.iter() {
+            dist.insert((*valve_id, *leads_to), valve.flow_rate);
+        }
+    }
 
-            if next_id == end_id {
-                println!("Found route with score {}", next_score);
-                return next_score as usize;
-            }
-
-            if let Some(&existing_score) = distances.get(&next_id) {
-                if next_score > existing_score {
-                    distances.insert(next_id, next_score);
-                    queue.push(ValveIDHeapItem(Reverse(next_score), *next_id));
-                }
-            } else {
-                distances.insert(next_id, next_score);
-                queue.push(ValveIDHeapItem(Reverse(next_score), *next_id));
+    for &k in valves.keys() {
+        for &i in valves.keys() {
+            for &j in valves.keys() {
+                let dist_ij = dist.get(&(i, j)).unwrap_or(&usize::MAX);
+                let dist_ik = dist.get(&(i, k)).unwrap_or(&usize::MAX);
+                let dist_kj = dist.get(&(k, j)).unwrap_or(&usize::MAX);
+                let dist_ik_kj = dist_ik.checked_add(*dist_kj).unwrap_or(usize::MAX);
+                dist.insert((i, j), *dist_ij.min(&dist_ik_kj));
             }
         }
     }
 
-    unreachable!("No route found between {} and {}", start_id, end_id);
+    dist
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct ValveIDHeapItem(Reverse<i32>, ValveID);
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct HeapItem<T>(Reverse<usize>, T)
+where
+    T: PartialEq + Eq;
 
-impl PartialOrd for ValveIDHeapItem {
+impl<T: Eq> PartialOrd for HeapItem<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.0.cmp(&other.0))
     }
 }
 
-impl Ord for ValveIDHeapItem {
+impl<T: Eq> Ord for HeapItem<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
@@ -246,7 +160,7 @@ struct Valve {
     leads_to: Vec<ValveID>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct ValveID {
     id: usize,
 }
