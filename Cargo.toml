@@ -1,7 +1,8 @@
 [workspace]
 	# All the crates
+	exclude = ["advent-utils"]
+
 	members = [
-		"advent-utils",
 		"day-01",
 		"day-02",
 		"day-03",

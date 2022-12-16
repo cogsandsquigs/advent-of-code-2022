@@ -1,4 +1,4 @@
-use advent_utils::{files::read, point::Point};
+use advent_utils::{files::read, macros::solution, point::Point};
 use anyhow::Result;
 use nom::{
     bytes::complete::tag,
@@ -9,15 +9,16 @@ use nom::{
 };
 
 fn main() -> Result<()> {
-    let input = read("day-15/input.txt")?;
+    let input = read("day-15/input.test.txt")?;
 
-    println!("Puzzle 1 answer: {}", part_1(&input));
+    part_1(&input);
 
-    println!("Puzzle 2 answer: {}", part_2(&input));
+    part_2(&input);
 
     Ok(())
 }
 
+#[solution(15, 1)]
 fn part_2(input: &str) -> i64 {
     let sensors = parse(input);
     let x_min = 0;
@@ -60,6 +61,7 @@ fn part_2(input: &str) -> i64 {
     unreachable!("No point found")
 }
 
+#[solution]
 fn part_1(input: &str) -> i64 {
     let sensors = parse(input);
     let y_level: i64 = 2000000; // 10 for test, 2000000 for actual input
