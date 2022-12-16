@@ -1,4 +1,4 @@
-use advent_utils::{files::read, macros::solution};
+use advent_utils::{files::read, heap::Heap, macros::solution};
 use anyhow::Result;
 use ndarray::{Array2, Array3};
 use nom::{
@@ -19,7 +19,7 @@ use std::{
 };
 
 fn main() -> Result<()> {
-    let input = read("day-16/input.test.txt")?;
+    let input = read("day-16/input.txt")?;
 
     part_1(&input);
 
@@ -35,156 +35,163 @@ fn part_2(input: &str) -> i64 {
 
 #[solution(day = "16", part = "1")]
 fn part_1(input: &str) -> usize {
-    let mut valves = valves(input);
+    let valves = valves(input);
+    let good_valves = valves
+        .iter()
+        .filter(|(_, valve)| valve.rate > 0)
+        .map(|(id, valve)| *id)
+        .collect::<HashSet<ValveID>>();
 
-    for (id, valve) in &valves {
-        println!(
-            "{} leads to {}",
-            id,
-            valve
-                .leads_to
-                .iter()
-                .map(|(id, dist)| format!("{} with distance {}", id, dist))
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-    }
+    let distances = floyd_warshall(&valves, &good_valves);
 
-    println!("---");
-
-    collapse_valves(&mut valves);
-
-    for (id, valve) in &valves {
-        println!(
-            "{} leads to {}",
-            id,
-            valve
-                .leads_to
-                .iter()
-                .map(|(id, dist)| format!("{} with distance {}", id, dist))
-                .collect::<Vec<String>>()
-                .join(", ")
-        );
-    }
-
-    let num_valves = valves.len();
-    let path_dists = floyd_warshall(&valves);
-
-    todo!()
+    dijkstra_distances(&valves, &good_valves, &distances)
 }
 
-// /// Dynamic-programming algorithm to find the next best valve to open. Returns the total flow rate
-// /// released.
-// fn open_valves(
-//     all_valves: &HashMap<ValveID, Valve>,
-//     visited_valves: &mut HashSet<ValveID>,
-//     current_valve: ValveID,
-//     // The remaining time in minutes
-//     remaining_time: usize,
-//     // The total flow rate composed of all the valves we have opened
-//     total_flow: usize,
-//     // The total flow rate released
-//     released: usize,
-// ) -> usize {
-//     let valve = all_valves.get(&current_valve).unwrap();
-//     // If we have 1 minute left, we can't open any more valves
-//     if remaining_time <= 1 {
-//         return released + total_flow * remaining_time;
-//     }
-//     // 2 minutes left allows us to open the valve we are currently at
-//     else if remaining_time == 2 {
-//         return released + total_flow * remaining_time + valve.flow_rate;
-//     }
-//     // If we have visited all the valves or all except the current one, we can't open any more valves
-//     else if visited_valves.len() >= all_valves.len() - 1 {
-//         return released
-//             + total_flow * remaining_time
-//             + valve.flow_rate * (remaining_time - 1);
-//     } else {
-//         let best_total_flow = usize::MIN;
+/// BFS search on the graph of distances between all valves. Returns the most water that can be released.
+fn dijkstra_distances(
+    all_valves: &HashMap<ValveID, Valve>,
+    good_valves: &HashSet<ValveID>,
+    distances: &HashMap<(ValveID, ValveID), usize>,
+) -> usize {
+    let mut queue = Heap::new();
+    queue.push(State::new(30), 0);
 
-//         for neighbor_id in valve.leads_to {
-//             let neighbor = all_valves.get(&current_valve).unwrap();
+    let mut max_released = 0;
 
-//             visited.insert(neighbor);
+    while let Some(mut state) = queue.pop() {
+        max_released = max_released.max(state.released + state.rate * state.time_remaining);
 
-//             if best_total_flow < open_valves(all_valves, visited)
-//         }
-//     }
-
-//     todo!()
-// }
-
-/// Floyd-warshall algorithm
-fn floyd_warshall(valves: &HashMap<ValveID, Valve>) -> HashMap<(ValveID, ValveID), usize> {
-    let mut dist: HashMap<(ValveID, ValveID), usize> = HashMap::new();
-
-    for (valve_id, valve) in valves.iter() {
-        for (leads_to, distance) in valve.leads_to.iter() {
-            dist.insert((*valve_id, *leads_to), *distance);
+        if state.time_remaining == 0 {
+            continue;
         }
-    }
+        // Greedily open valve if we can
+        else if !state.opened.contains(&state.current_valve) && state.rate > 0 {
+            state.open(all_valves.get(&state.current_valve).unwrap());
+            let released = state.released; // tmp variable to avoid borrow checker
+            queue.push(state, released);
+            continue;
+        }
 
-    for &k in valves.keys() {
-        for &i in valves.keys() {
-            for &j in valves.keys() {
-                let dist_ij = dist.get(&(i, j)).cloned().unwrap_or(usize::MAX);
-                let dist_ik = dist.get(&(i, k)).cloned().unwrap_or(usize::MAX);
-                let dist_kj = dist.get(&(k, j)).cloned().unwrap_or(usize::MAX);
-                let dist_ik_kj = dist_ik.checked_add(dist_kj).unwrap_or(usize::MAX);
-                dist.insert((i, j), dist_ij.min(dist_ik_kj));
+        for id in good_valves {
+            if state.opened.contains(id) {
+                continue;
+            }
+
+            let distance = distances.get(&(state.current_valve, *id)).unwrap();
+
+            // Travel to the valve and open it
+            if state.time_remaining > *distance {
+                let mut new_state = state.clone();
+                new_state.travel(id, *distance);
+                new_state.open(all_valves.get(id).unwrap());
+                let released = new_state.released; // tmp variable to avoid borrow checker
+                queue.push(new_state, released);
             }
         }
     }
 
-    dist
+    max_released
 }
 
-/// Gets rid of every valve with a flow rate of 0, by replacing them with +1 distance for paths of adjacent valves
-fn collapse_valves(valves: &mut HashMap<ValveID, Valve>) {
-    let mut to_remove: HashSet<ValveID> = HashSet::new();
-    let mut removed_id_neighbors: HashMap<ValveID, Vec<ValveID>> = HashMap::new();
+fn floyd_warshall(
+    all_valves: &HashMap<ValveID, Valve>,
+    good_valves: &HashSet<ValveID>,
+) -> HashMap<(ValveID, ValveID), usize> {
+    let mut distances = HashMap::new();
 
-    for (id, valve) in valves.iter() {
-        // Don't get rid of the starting point valve
-        if valve.flow_rate == 0 && valve.id != ValveID::new("AA") {
-            to_remove.insert(*id);
-            removed_id_neighbors.insert(*id, valve.leads_to.keys().copied().collect());
+    for i in all_valves.keys() {
+        for j in good_valves {
+            distances.insert((*i, *j), dist_between_valves(all_valves, i, j));
         }
     }
 
-    for id in &to_remove {
-        let valve = valves.remove(id).unwrap();
+    distances
+}
 
-        for neighbor_id in valve.leads_to.keys() {
-            // If the neighbor is also being removed, we need to add its neighbors to the current valve
-            if to_remove.contains(neighbor_id) {
-                for neighbor_neighbor_id in removed_id_neighbors.get(neighbor_id).unwrap() {
-                    let neighbor = valves.get_mut(neighbor_neighbor_id).unwrap();
-                    neighbor.leads_to.insert(*id, 1);
-                }
-            } else {
-                let neighbor = valves.get_mut(neighbor_id).unwrap();
-                neighbor.leads_to.insert(*id, 1);
+fn dist_between_valves(
+    all_valves: &HashMap<ValveID, Valve>,
+    start: &ValveID,
+    end: &ValveID,
+) -> usize {
+    let mut queue = Heap::new();
+    queue.push(start, Reverse(0));
+
+    let mut visited = HashSet::new();
+
+    while let Some((current, Reverse(distance))) = queue.pop_with_priority() {
+        if current == end {
+            return distance;
+        }
+
+        if visited.contains(&current) {
+            continue;
+        }
+
+        visited.insert(current);
+
+        let current_valve = all_valves.get(current).unwrap();
+
+        for id in all_valves.keys() {
+            if id == current {
+                continue;
+            }
+
+            if current_valve.neighbors.contains(id) {
+                queue.push(id, Reverse(distance + 1));
             }
         }
     }
+
+    panic!("No path found between {} and {}", start, end);
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct HeapItem<T>(Reverse<usize>, T)
-where
-    T: PartialEq + Eq;
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct State {
+    current_valve: ValveID,
+    opened: HashSet<ValveID>,
+    time_remaining: usize,
+    rate: usize,
+    released: usize,
+}
 
-impl<T: Eq> PartialOrd for HeapItem<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.0.cmp(&other.0))
+impl State {
+    fn new(time_remaining: usize) -> Self {
+        Self {
+            current_valve: ValveID::new("AA"),
+            opened: HashSet::new(),
+            time_remaining,
+            rate: 0,
+            released: 0,
+        }
     }
-}
 
-impl<T: Eq> Ord for HeapItem<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
+    fn open(&mut self, valve: &Valve) {
+        // Takes 1 minute to open a valve
+        self.time_remaining -= 1;
+        // Release pressure from the valves that have been opened so far
+        self.released += self.rate;
+        // Add the rate from this valve to the total rate
+        self.rate += valve.rate;
+        // Tell the state that we've opened this valve
+        self.opened.insert(valve.name);
+    }
+
+    fn travel(&mut self, valve: &ValveID, time: usize) {
+        // Release pressure from the valves that have been opened so far
+        // for the given amount of time
+        self.released += self.rate * time;
+        // Travel for the given amount of time
+        self.time_remaining -= time;
+        // Update the current valve
+        self.current_valve = *valve;
+    }
+
+    fn wait(&mut self, time: usize) {
+        // Wait for the given amount of time
+        self.time_remaining -= time;
+        // Release pressure from the valves that have been opened so far
+        // for the given amount of time
+        self.released += self.rate * time;
     }
 }
 
@@ -195,7 +202,7 @@ fn valves(input: &str) -> HashMap<ValveID, Valve> {
         .lines()
         .map(|line| valve(line).unwrap().1)
         .for_each(|valve| {
-            valves.insert(valve.id, valve);
+            valves.insert(valve.name, valve);
         });
 
     valves
@@ -203,56 +210,56 @@ fn valves(input: &str) -> HashMap<ValveID, Valve> {
 
 fn valve(input: &str) -> IResult<&str, Valve> {
     let (input, _) = tag("Valve ")(input)?;
-    let (input, id) = valve_id(input)?;
+    let (input, name) = valve_id(input)?;
     let (input, _) = tag(" has flow rate=")(input)?;
-    let (input, flow_rate) = map_res(digit1, |s: &str| s.parse::<usize>())(input)?;
+    let (input, rate) = map_res(digit1, |s: &str| s.parse::<usize>())(input)?;
     let (input, _) = alt((
         tag("; tunnel leads to valve "),
         tag("; tunnels lead to valves "),
     ))(input)?;
-    let (input, leads_to) = separated_list1(tag(", "), valve_id)(input)?;
+    let (input, neighbors) = separated_list1(tag(", "), valve_id)(input)?;
 
     Ok((
         input,
         Valve {
-            id,
-            flow_rate,
-            leads_to: leads_to.into_iter().map(|id| (id, 1)).collect(),
+            name,
+            rate,
+            neighbors: neighbors.into_iter().collect(),
         },
     ))
 }
 
 fn valve_id(input: &str) -> IResult<&str, ValveID> {
-    let (input, id) = take(2usize)(input)?;
-    let id = ValveID::new(id);
-    Ok((input, id))
+    let (input, name) = take(2usize)(input)?;
+    let name = ValveID::new(name);
+    Ok((input, name))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Valve {
-    id: ValveID,
-    flow_rate: usize,
-    leads_to: HashMap<ValveID, usize>,
+    name: ValveID,
+    rate: usize,
+    neighbors: HashSet<ValveID>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 struct ValveID {
-    id: usize,
+    name: usize,
 }
 
 impl ValveID {
     fn new(string: &str) -> Self {
         let char1 = string.chars().next().unwrap();
         let char2 = string.chars().nth(1).unwrap();
-        let id = (char1 as usize - 'A' as usize) * 26 + (char2 as usize - 'A' as usize);
-        Self { id }
+        let name = (char1 as usize - 'A' as usize) * 26 + (char2 as usize - 'A' as usize);
+        Self { name }
     }
 }
 
 impl Display for ValveID {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let char1 = (self.id / 26) as u8 + b'A';
-        let char2 = (self.id % 26) as u8 + b'A';
+        let char1 = (self.name / 26) as u8 + b'A';
+        let char2 = (self.name % 26) as u8 + b'A';
         write!(f, "{}{}", char1 as char, char2 as char)
     }
 }
