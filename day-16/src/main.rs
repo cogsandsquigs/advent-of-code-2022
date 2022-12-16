@@ -39,7 +39,7 @@ fn part_1(input: &str) -> usize {
     let good_valves = valves
         .iter()
         .filter(|(_, valve)| valve.rate > 0)
-        .map(|(id, valve)| *id)
+        .map(|(id, _)| *id)
         .collect::<HashSet<ValveID>>();
 
     let distances = floyd_warshall(&valves, &good_valves);
