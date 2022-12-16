@@ -47,7 +47,7 @@ fn part_1(input: &str) -> usize {
     dijkstra_distances(&valves, &good_valves, &distances)
 }
 
-/// BFS search on the graph of distances between all valves. Returns the most water that can be released.
+/// Dijkstra search on the graph of distances between all valves. Returns the most water that can be released.
 fn dijkstra_distances(
     all_valves: &HashMap<ValveID, Valve>,
     good_valves: &HashSet<ValveID>,
