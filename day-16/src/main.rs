@@ -54,41 +54,56 @@ fn dijkstra_two_actors(
     let mut max_released = 0;
 
     while let Some(mut state) = queue.pop() {
-        max_released =
-            max_released.max(state.person_released + state.rate * state.person_time_remaining);
+        max_released = max_released.max(
+            state.person_released
+                + state.person_rate * state.person_time_remaining
+                + state.elephant_released
+                + state.elephant_rate * state.elephant_time_remaining,
+        );
 
-        if state.person_time_remaining == 0 || state.elephant_time_remaining == 0 {
+        if state.person_time_remaining == 0 && state.elephant_time_remaining == 0 {
             continue;
         }
 
         // Greedily open valves if we can
-        if !state.opened.contains(&state.person_valve) && state.rate > 0 {
+        if !state.opened.contains(&state.person_valve)
+            && all_valves.get(&state.person_valve).unwrap().rate > 0
+            && state.person_time_remaining > 0
+        {
             state.open_person(all_valves.get(&state.person_valve).unwrap());
-            let released = state.person_released; // tmp variable to avoid borrow checker
 
             // Also  check if we can open the elephant valve
-
-            if !state.opened.contains(&state.elephant_valve) && state.rate > 0 {
+            if !state.opened.contains(&state.elephant_valve)
+                && all_valves.get(&state.elephant_valve).unwrap().rate > 0
+                && state.elephant_time_remaining > 0
+            {
                 state.open_elephant(all_valves.get(&state.elephant_valve).unwrap());
-                let released = state.elephant_released; // tmp variable to avoid borrow checker
             }
+
+            let released = state.person_released + state.elephant_released; // tmp variable to avoid borrow checker
 
             queue.push(state, released);
             continue;
-        } else if !state.opened.contains(&state.elephant_valve) && state.rate > 0 {
+        } else if !state.opened.contains(&state.elephant_valve)
+            && all_valves.get(&state.elephant_valve).unwrap().rate > 0
+            && state.elephant_time_remaining > 0
+        {
             state.open_elephant(all_valves.get(&state.elephant_valve).unwrap());
-            let released = state.elephant_released; // tmp variable to avoid borrow checker
+            let released = state.person_released + state.elephant_released; // tmp variable to avoid borrow checker
             queue.push(state, released);
             continue;
         }
 
         for person_id in good_valves {
-            if state.opened.contains(person_id) {
+            if state.opened.contains(person_id) || state.person_time_remaining == 0 {
                 continue;
             }
 
             for elephant_id in good_valves {
-                if state.opened.contains(elephant_id) || person_id == elephant_id {
+                if state.opened.contains(elephant_id)
+                    || person_id == elephant_id
+                    || state.elephant_time_remaining == 0
+                {
                     continue;
                 }
 
@@ -103,13 +118,16 @@ fn dijkstra_two_actors(
                 if state.person_time_remaining > *person_distance {
                     new_state.travel_person(person_id, *person_distance);
                     new_state.open_person(all_valves.get(person_id).unwrap());
-                    println!("person:   {} -> {}", person_id, *person_distance);
+                    // println!("person:   {} -> {}", person_id, *person_distance);
                 }
                 if state.elephant_time_remaining > *elephant_distance {
                     new_state.travel_elephant(elephant_id, *elephant_distance);
                     new_state.open_elephant(all_valves.get(elephant_id).unwrap());
-                    println!("elephant: {} -> {}", elephant_id, *elephant_distance);
+                    // println!("elephant: {} -> {}", elephant_id, *elephant_distance);
                 }
+
+                let released = new_state.person_released + new_state.elephant_released; // tmp variable to avoid borrow checker
+                queue.push(new_state, released);
             }
         }
     }
@@ -143,18 +161,16 @@ fn dijkstra_one_actor(
     let mut max_released = 0;
 
     while let Some(mut state) = queue.pop() {
-        max_released = max_released.max(
-            state.person_released
-                + state.person_rate * state.person_time_remaining
-                + state.elephant_released
-                + state.elephant_rate * state.elephant_time_remaining,
-        );
+        max_released = max_released
+            .max(state.person_released + state.person_rate * state.person_time_remaining);
 
         if state.person_time_remaining == 0 {
             continue;
         }
         // Greedily open valve if we can
-        else if !state.opened.contains(&state.person_valve) && state.rate > 0 {
+        else if !state.opened.contains(&state.person_valve)
+            && all_valves.get(&state.person_valve).unwrap().rate > 0
+        {
             state.open_person(all_valves.get(&state.person_valve).unwrap());
             let released = state.person_released; // tmp variable to avoid borrow checker
             queue.push(state, released);
