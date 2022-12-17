@@ -1,6 +1,6 @@
-use advent_utils::{files::read, heap::Heap, macros::solution};
+use advent_utils::{files::read, macros::solution, queue::Queue};
 use anyhow::Result;
-use ndarray::{Array2, Array3};
+use itertools::Itertools;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take},
@@ -10,16 +10,13 @@ use nom::{
     IResult,
 };
 use std::{
-    cell::RefCell,
-    cmp::{Ordering, Reverse},
-    collections::{BinaryHeap, HashMap, HashSet},
+    cmp::Reverse,
+    collections::{HashMap, HashSet},
     fmt::{Display, Formatter},
-    rc::Rc,
-    sync::Arc,
 };
 
 fn main() -> Result<()> {
-    let input = read("day-16/input.test.txt")?;
+    let input = read("day-16/input.txt")?;
 
     part_1(&input);
 
@@ -39,95 +36,97 @@ fn part_2(input: &str) -> usize {
 
     let distances = floyd_warshall(&valves, &good_valves);
 
-    dijkstra_two_actors(&valves, &good_valves, &distances)
+    bfs_two_actors(&valves, &good_valves, &distances)
 }
 
-/// Dijkstra search on the graph of distances between all valves. Returns the most water that can be released.
-fn dijkstra_two_actors(
+/// BFS search on the graph of distances between all valves. Returns the most water that can be released.
+fn bfs_two_actors(
     all_valves: &HashMap<ValveID, Valve>,
     good_valves: &HashSet<ValveID>,
     distances: &HashMap<(ValveID, ValveID), usize>,
 ) -> usize {
-    let mut queue = Heap::new();
-    queue.push(State::new(30), 0);
+    let mut queue = Vec::new();
+    queue.push(State::new(26));
 
     let mut max_released = 0;
 
     while let Some(mut state) = queue.pop() {
-        max_released = max_released.max(
-            state.person_released
-                + state.person_rate * state.person_time_remaining
-                + state.elephant_released
-                + state.elephant_rate * state.elephant_time_remaining,
-        );
+        max_released = max_released.max(state.release_all());
 
-        if state.person_time_remaining == 0 && state.elephant_time_remaining == 0 {
+        if state.person_time_remaining < 2 && state.elephant_time_remaining < 2 {
             continue;
         }
+
+        let person_valve = state.get_person_valve(all_valves).clone();
+        let elephant_valve = state.get_elephant_valve(all_valves).clone();
+
+        let mut did_open = false;
 
         // Greedily open valves if we can
         if !state.opened.contains(&state.person_valve)
-            && all_valves.get(&state.person_valve).unwrap().rate > 0
-            && state.person_time_remaining > 0
+            && person_valve.rate > 0
+            && state.person_time_remaining >= 2
         {
-            state.open_person(all_valves.get(&state.person_valve).unwrap());
+            state.open_person(&person_valve);
+            did_open = true;
+        }
 
-            // Also  check if we can open the elephant valve
-            if !state.opened.contains(&state.elephant_valve)
-                && all_valves.get(&state.elephant_valve).unwrap().rate > 0
-                && state.elephant_time_remaining > 0
-            {
-                state.open_elephant(all_valves.get(&state.elephant_valve).unwrap());
-            }
-
-            let released = state.person_released + state.elephant_released; // tmp variable to avoid borrow checker
-
-            queue.push(state, released);
-            continue;
-        } else if !state.opened.contains(&state.elephant_valve)
-            && all_valves.get(&state.elephant_valve).unwrap().rate > 0
-            && state.elephant_time_remaining > 0
+        // Greedily open valves if we can
+        if !state.opened.contains(&state.elephant_valve)
+            && elephant_valve.rate > 0
+            && state.elephant_time_remaining >= 2
         {
-            state.open_elephant(all_valves.get(&state.elephant_valve).unwrap());
-            let released = state.person_released + state.elephant_released; // tmp variable to avoid borrow checker
-            queue.push(state, released);
+            state.open_elephant(&elephant_valve);
+            did_open = true;
+        }
+
+        if did_open {
+            queue.push(state);
             continue;
         }
 
-        for person_id in good_valves {
-            if state.opened.contains(person_id) || state.person_time_remaining == 0 {
+        for (person_id, elephant_id) in good_valves
+            .iter()
+            .combinations_with_replacement(2)
+            .map(|v| (v[0], v[1]))
+        {
+            if state.person_time_remaining < 2
+                || state.elephant_time_remaining < 2
+                || person_id == elephant_id
+                || state.opened.contains(person_id)
+                || state.opened.contains(elephant_id)
+            {
                 continue;
             }
 
-            for elephant_id in good_valves {
-                if state.opened.contains(elephant_id)
-                    || person_id == elephant_id
-                    || state.elephant_time_remaining == 0
-                {
-                    continue;
-                }
+            let mut new_state = state.clone();
 
-                let mut new_state = state.clone();
+            let person_distance = distances.get(&(state.person_valve, *person_id)).unwrap();
+            let elephant_distance = distances
+                .get(&(state.elephant_valve, *elephant_id))
+                .unwrap();
 
-                let person_distance = distances.get(&(state.person_valve, *person_id)).unwrap();
-                let elephant_distance = distances
-                    .get(&(state.elephant_valve, *elephant_id))
-                    .unwrap();
+            let mut push_new = false;
 
-                // Travel to the valve and open it
-                if state.person_time_remaining > *person_distance {
-                    new_state.travel_person(person_id, *person_distance);
-                    new_state.open_person(all_valves.get(person_id).unwrap());
-                    // println!("person:   {} -> {}", person_id, *person_distance);
-                }
-                if state.elephant_time_remaining > *elephant_distance {
-                    new_state.travel_elephant(elephant_id, *elephant_distance);
-                    new_state.open_elephant(all_valves.get(elephant_id).unwrap());
-                    // println!("elephant: {} -> {}", elephant_id, *elephant_distance);
-                }
+            // Travel to the valve and open it
+            if state.person_time_remaining > *person_distance {
+                new_state.travel_person(person_id, *person_distance);
+                new_state.open_person(all_valves.get(person_id).unwrap());
+                push_new = true;
+                println!("person:   {} -> {}", person_id, *person_distance);
+            }
 
-                let released = new_state.person_released + new_state.elephant_released; // tmp variable to avoid borrow checker
-                queue.push(new_state, released);
+            if state.elephant_time_remaining > *elephant_distance {
+                new_state.travel_elephant(elephant_id, *elephant_distance);
+                new_state.open_elephant(all_valves.get(elephant_id).unwrap());
+                push_new = true;
+                println!("elephant: {} -> {}", elephant_id, *elephant_distance);
+            }
+
+            if push_new {
+                queue.push(new_state);
+                // queue.truncate(1000);
+                println!("max_released: {}", max_released);
             }
         }
     }
@@ -146,34 +145,32 @@ fn part_1(input: &str) -> usize {
 
     let distances = floyd_warshall(&valves, &good_valves);
 
-    dijkstra_one_actor(&valves, &good_valves, &distances)
+    bfs_one_actor(&valves, &good_valves, &distances)
 }
 
-/// Dijkstra search on the graph of distances between all valves. Returns the most water that can be released.
-fn dijkstra_one_actor(
+/// BFS search on the graph of distances between all valves. Returns the most water that can be released.
+fn bfs_one_actor(
     all_valves: &HashMap<ValveID, Valve>,
     good_valves: &HashSet<ValveID>,
     distances: &HashMap<(ValveID, ValveID), usize>,
 ) -> usize {
-    let mut queue = Heap::new();
-    queue.push(State::new(30), 0);
+    let mut queue = Vec::new();
+    queue.push(State::new(30));
 
     let mut max_released = 0;
 
     while let Some(mut state) = queue.pop() {
-        max_released = max_released
-            .max(state.person_released + state.person_rate * state.person_time_remaining);
+        max_released = max_released.max(state.release_all());
 
         if state.person_time_remaining == 0 {
             continue;
         }
+
+        let valve = state.get_person_valve(all_valves).clone();
         // Greedily open valve if we can
-        else if !state.opened.contains(&state.person_valve)
-            && all_valves.get(&state.person_valve).unwrap().rate > 0
-        {
-            state.open_person(all_valves.get(&state.person_valve).unwrap());
-            let released = state.person_released; // tmp variable to avoid borrow checker
-            queue.push(state, released);
+        if !state.opened.contains(&state.person_valve) && valve.rate > 0 {
+            state.open_person(&valve);
+            queue.push(state);
             continue;
         }
 
@@ -189,8 +186,7 @@ fn dijkstra_one_actor(
                 let mut new_state = state.clone();
                 new_state.travel_person(id, *distance);
                 new_state.open_person(all_valves.get(id).unwrap());
-                let released = new_state.person_released; // tmp variable to avoid borrow checker
-                queue.push(new_state, released);
+                queue.push(new_state);
             }
         }
     }
@@ -218,7 +214,7 @@ fn dist_between_valves(
     start: &ValveID,
     end: &ValveID,
 ) -> usize {
-    let mut queue = Heap::new();
+    let mut queue = Queue::new();
     queue.push(start, Reverse(0));
 
     let mut visited = HashSet::new();
@@ -276,6 +272,21 @@ impl State {
             elephant_rate: 0,
             opened: HashSet::new(),
         }
+    }
+
+    fn release_all(&self) -> usize {
+        self.person_released
+            + self.person_rate * self.person_time_remaining
+            + self.elephant_released
+            + self.elephant_rate * self.elephant_time_remaining
+    }
+
+    fn get_person_valve<'a>(&'a self, all_valves: &'a HashMap<ValveID, Valve>) -> &Valve {
+        all_valves.get(&self.person_valve).unwrap()
+    }
+
+    fn get_elephant_valve<'a>(&'a self, all_valves: &'a HashMap<ValveID, Valve>) -> &Valve {
+        all_valves.get(&self.elephant_valve).unwrap()
     }
 
     fn open_person(&mut self, valve: &Valve) {
