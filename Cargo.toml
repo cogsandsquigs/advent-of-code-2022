@@ -21,6 +21,7 @@
 		"day-16",
 		"day-18",
 		"day-19",
+		"day-20",
 	]
 
 	[workspace.package]
