@@ -16,11 +16,12 @@ fn main() -> Result<()> {
 fn part_2(input: &str) -> i64 {
     let points = points(input);
     let mins = points.iter().fold((0, 0, 0), |acc, (x, y, z)| {
-        (acc.0.min(*x) - 1, acc.1.min(*y) - 1, acc.2.min(*z) - 1)
+        (acc.0.min(*x - 1), acc.1.min(*y - 1), acc.2.min(*z - 1))
     });
     let maxs = points.iter().fold((0, 0, 0), |acc, (x, y, z)| {
-        (acc.0.max(*x) + 1, acc.1.max(*y) + 1, acc.2.max(*z) + 1)
+        (acc.0.max(*x + 1), acc.1.max(*y + 1), acc.2.max(*z + 1))
     });
+
     let mut total = 0;
     let mut visited = points.clone();
     let mut queue = vec![mins];
@@ -37,12 +38,14 @@ fn part_2(input: &str) -> i64 {
                 continue;
             }
 
-            total += i64::from(points.contains(&neighbor));
+            total += points.contains(&neighbor) as i64;
 
-            // If we haven't seen this point before, add it to the queue.
-            if visited.insert(neighbor) {
-                queue.push(neighbor);
+            if visited.contains(&neighbor) {
+                continue;
             }
+
+            visited.insert(neighbor);
+            queue.push(neighbor);
         }
     }
 
