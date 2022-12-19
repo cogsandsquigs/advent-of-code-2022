@@ -40,12 +40,9 @@ fn part_2(input: &str) -> i64 {
 
             total += points.contains(&neighbor) as i64;
 
-            if visited.contains(&neighbor) {
-                continue;
+            if visited.insert(neighbor) {
+                queue.push(neighbor);
             }
-
-            visited.insert(neighbor);
-            queue.push(neighbor);
         }
     }
 
