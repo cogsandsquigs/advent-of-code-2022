@@ -63,7 +63,7 @@ fn mix(list: &mut VecDeque<i64>, mut idxs: Vec<usize>) {
         let final_idx = if idx as i64 + shift > 0 {
             ((idx as i64 + shift) as usize) % (len - 1)
         } else {
-            len - 1 + ((idx as i64 + shift) as usize) % (len - 1)
+            len - 1 - (-(idx as i64 + shift) as usize) % (len - 1)
         };
 
         list.insert(final_idx, shift);
