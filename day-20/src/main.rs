@@ -2,7 +2,7 @@ use advent_utils::{files::read, macros::solution};
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    let input = read("day-20/input.test.txt")?;
+    let input = read("day-20/input.txt")?;
 
     part_1(&input);
 
@@ -20,13 +20,13 @@ fn part_2(input: &str) -> i64 {
 fn part_1(input: &str) -> i64 {
     let mut nums = nums(input);
 
-    println!("{:?}", nums);
-
     mix(&mut nums);
 
-    println!("{:?}", nums);
+    let zero_pos = nums.iter().position(|&x| x == 0).unwrap();
 
-    todo!()
+    nums[(1000 + zero_pos) % nums.len()]
+        + nums[(2000 + zero_pos) % nums.len()]
+        + nums[(3000 + zero_pos) % nums.len()]
 }
 
 fn mix(v: &mut Vec<i64>) {
@@ -38,24 +38,30 @@ fn mix(v: &mut Vec<i64>) {
 
         let shift_val = v[idx];
 
-        let final_idx = if idx as i64 + shift_val < 0 {
-            v_len - (-(idx as i64 + shift_val)) as usize % v_len
-        } else {
-            (idx as i64 + shift_val) as usize % v_len
-        };
+        // Skip 0 as it does not move
+        if shift_val == 0 {
+            continue;
+        }
 
-        println!("{}", final_idx);
+        // IK this is jank but at least it works ig
+        let final_idx = if idx as i64 + shift_val == 0 {
+            v_len - 1
+        } else if idx as i64 + shift_val < 0 {
+            v_len - 1 - ((idx as i64 + shift_val).unsigned_abs() as usize % v_len)
+        } else if ((idx as i64 + shift_val) as usize) % v_len != (idx as i64 + shift_val) as usize {
+            (((idx as i64 + shift_val) as usize) + 1) % v_len
+        } else {
+            (idx as i64 + shift_val) as usize
+        };
 
         v.remove(idx);
         v.insert(final_idx, shift_val);
 
-        println!("{:?}", v);
-
         for i in 0..indicies.len() {
-            if indicies[i] > idx && indicies[i] < final_idx {
-                indicies[i] = indicies[i] as usize - 1;
-            } else if indicies[i] > idx && indicies[i] > final_idx {
-                indicies[i] = indicies[i] as usize + 1;
+            if indicies[i] <= final_idx
+                || shift_val < 0 && indicies[i] >= idx && indicies[i] < final_idx
+            {
+                indicies[i] -= 1;
             }
         }
     }
