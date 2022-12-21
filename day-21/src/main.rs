@@ -1,6 +1,7 @@
 use advent_utils::{files::read, macros::solution};
 use anyhow::Result;
-use std::{collections::HashMap, mem::swap, vec};
+use num::complex::Complex64;
+use std::{collections::HashMap, mem::swap};
 
 fn main() -> Result<()> {
     let input = read("day-21/input.txt")?;
@@ -14,73 +15,32 @@ fn main() -> Result<()> {
 
 #[solution(day = "21", part = "2")]
 fn part_2(input: &str) -> f64 {
-    let monkeys = monkeys(input);
+    let mut monkeys = monkeys(input);
+    monkeys.insert("humn".into(), Monkey::Number(Complex64::new(0.0, 1.0)));
 
-    let Monkey::Operation{ mut left, mut right, .. } = monkeys.get("root").cloned().unwrap() else {
-        unreachable!("`root` should be an operation monkey!");
+    let Monkey::Operation { left, right, .. } = monkeys.get("root").unwrap() else {
+        unreachable!("`root` monkey does not exist!");
     };
 
-    // Always have the human on the right side
-    if contains_human(&monkeys, &left) {
+    let mut left = eval_monkeys(&monkeys, left);
+    let mut right = eval_monkeys(&monkeys, right);
+
+    // Always keep the human side on the left
+    if left.im == 0.0 {
         swap(&mut left, &mut right);
     }
 
-    let mut left = eval_monkeys(&monkeys, &left);
-    let ops = reversed_ops(&monkeys, &right);
-
-    for (op, right) in ops {
-        left = op.operate(left, right);
-    }
-
-    left
-}
-
-fn reversed_ops(monkeys: &HashMap<String, Monkey>, id: &str) -> Vec<(Operation, f64)> {
-    if id == "humn" {
-        vec![]
-    } else {
-        match monkeys.get(id).unwrap().clone() {
-            Monkey::Number(..) => unreachable!("Should not get a number monkey here!"),
-            Monkey::Operation {
-                mut left,
-                mut right,
-                operation,
-            } => {
-                // Always have the human on the right side
-                if contains_human(monkeys, &left) {
-                    swap(&mut left, &mut right);
-                }
-
-                let mut ops = vec![(operation.opposite(), eval_monkeys(monkeys, &left))];
-                ops.append(&mut reversed_ops(monkeys, &right));
-
-                ops
-            }
-        }
-    }
-}
-
-fn contains_human(monkeys: &HashMap<String, Monkey>, id: &str) -> bool {
-    if id == "humn" {
-        true
-    } else {
-        match monkeys.get(id).unwrap() {
-            Monkey::Number(..) => false,
-            Monkey::Operation { left, right, .. } => {
-                contains_human(monkeys, left) || contains_human(monkeys, right)
-            }
-        }
-    }
+    ((right.re - left.re) / left.im).round()
 }
 
 #[solution(day = "21", part = "1")]
 fn part_1(input: &str) -> f64 {
     let monkeys = monkeys(input);
 
-    eval_monkeys(&monkeys, "root")
+    eval_monkeys(&monkeys, "root").re
 }
 
-fn eval_monkeys(monkeys: &HashMap<String, Monkey>, id: &str) -> f64 {
+fn eval_monkeys(monkeys: &HashMap<String, Monkey>, id: &str) -> Complex64 {
     let monkey = monkeys.get(id).unwrap();
 
     match monkey {
@@ -119,7 +79,7 @@ fn monkeys(input: &str) -> HashMap<String, Monkey> {
 
 #[derive(Clone, Debug)]
 enum Monkey {
-    Number(f64),
+    Number(Complex64),
 
     Operation {
         left: String,
@@ -151,7 +111,7 @@ impl TryFrom<&str> for Operation {
 }
 
 impl Operation {
-    fn operate(&self, left: f64, right: f64) -> f64 {
+    fn operate(&self, left: Complex64, right: Complex64) -> Complex64 {
         match self {
             Self::Add => left + right,
             Self::Sub => left - right,
