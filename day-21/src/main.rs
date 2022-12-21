@@ -13,7 +13,7 @@ fn main() -> Result<()> {
 }
 
 #[solution(day = "21", part = "2")]
-fn part_2(input: &str) -> i64 {
+fn part_2(input: &str) -> f64 {
     let monkeys = monkeys(input);
 
     let Monkey::Operation{ mut left, mut right, .. } = monkeys.get("root").cloned().unwrap() else {
@@ -35,7 +35,7 @@ fn part_2(input: &str) -> i64 {
     left
 }
 
-fn reversed_ops(monkeys: &HashMap<String, Monkey>, id: &str) -> Vec<(Operation, i64)> {
+fn reversed_ops(monkeys: &HashMap<String, Monkey>, id: &str) -> Vec<(Operation, f64)> {
     if id == "humn" {
         vec![]
     } else {
@@ -74,13 +74,13 @@ fn contains_human(monkeys: &HashMap<String, Monkey>, id: &str) -> bool {
 }
 
 #[solution(day = "21", part = "1")]
-fn part_1(input: &str) -> i64 {
+fn part_1(input: &str) -> f64 {
     let monkeys = monkeys(input);
 
     eval_monkeys(&monkeys, "root")
 }
 
-fn eval_monkeys(monkeys: &HashMap<String, Monkey>, id: &str) -> i64 {
+fn eval_monkeys(monkeys: &HashMap<String, Monkey>, id: &str) -> f64 {
     let monkey = monkeys.get(id).unwrap();
 
     match monkey {
@@ -117,9 +117,9 @@ fn monkeys(input: &str) -> HashMap<String, Monkey> {
     monkey_set
 }
 
-#[derive(Clone, Debug, Hash)]
+#[derive(Clone, Debug)]
 enum Monkey {
-    Number(i64),
+    Number(f64),
 
     Operation {
         left: String,
@@ -128,7 +128,7 @@ enum Monkey {
     },
 }
 
-#[derive(Clone, Copy, Debug, Hash)]
+#[derive(Clone, Copy, Debug)]
 enum Operation {
     Add,
     Sub,
@@ -151,7 +151,7 @@ impl TryFrom<&str> for Operation {
 }
 
 impl Operation {
-    fn operate(&self, left: i64, right: i64) -> i64 {
+    fn operate(&self, left: f64, right: f64) -> f64 {
         match self {
             Self::Add => left + right,
             Self::Sub => left - right,
