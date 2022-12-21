@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::{collections::HashMap, mem::swap, vec};
 
 fn main() -> Result<()> {
-    let input = read("day-21/input.test.txt")?;
+    let input = read("day-21/input.txt")?;
 
     part_1(&input);
 
@@ -16,124 +16,73 @@ fn main() -> Result<()> {
 fn part_2(input: &str) -> i64 {
     let monkeys = monkeys(input);
 
-    equalize_monkeys(&monkeys)
-}
-
-fn equalize_monkeys(monkeys: &HashMap<String, Monkey>) -> i64 {
-    let Monkey::Operation{ left: root_left, right: root_right, .. } = monkeys.get("root").unwrap() else {
+    let Monkey::Operation{ mut left, mut right, .. } = monkeys.get("root").cloned().unwrap() else {
         unreachable!("`root` should be an operation monkey!");
     };
 
-    let mut left = collect_monkeys(monkeys, root_left);
-    let mut right = collect_monkeys(monkeys, root_right);
-
-    // Do this so we know which one has the human: the right one always has the human
-    // after this.
-    if contains_human(&left) {
+    // Always have the human on the right side
+    if contains_human(&monkeys, &left) {
         swap(&mut left, &mut right);
     }
 
-    let ops = get_reversed_ops(&right);
-    let mut left = eval_tree(&left);
+    let mut left = eval_monkeys(&monkeys, &left);
+    let ops = reversed_ops(&monkeys, &right);
 
     for (op, right) in ops {
-        println!("{op:?}, {right}");
-
-        left = op.operate(left, right)
+        left = op.operate(left, right);
     }
 
     left
 }
 
-fn get_reversed_ops(tree: &MonkeyTree) -> Vec<(Operation, i64)> {
-    match tree {
-        MonkeyTree::Node {
-            left,
-            right,
-            operation,
-        } => {
-            let mut left = *left.clone();
-            let mut right = *right.clone();
-
-            // Do this so we know which one has the human: the right one always has the human
-            // after this.
-            if contains_human(&left) {
-                swap(&mut left, &mut right);
-            }
-
-            let left = eval_tree(&left.clone());
-            let mut right_ops = get_reversed_ops(&right);
-            let mut ops = vec![(operation.opposite(), left)];
-
-            ops.append(&mut right_ops);
-
-            ops
-        }
-        MonkeyTree::Human => vec![],
-        MonkeyTree::Leaf(..) => unreachable!("Should not be able to get to a leaf here!"),
-    }
-}
-
-fn eval_tree(tree: &MonkeyTree) -> i64 {
-    match tree {
-        MonkeyTree::Node {
-            left,
-            right,
-            operation,
-        } => operation.operate(eval_tree(left), eval_tree(right)),
-        MonkeyTree::Leaf(x) => *x,
-        MonkeyTree::Human => panic!("Humans not allowed here!"),
-    }
-}
-
-fn contains_human(tree: &MonkeyTree) -> bool {
-    match tree {
-        MonkeyTree::Node { left, right, .. } => contains_human(left) || contains_human(right),
-        MonkeyTree::Leaf(..) => false,
-        MonkeyTree::Human => true,
-    }
-}
-
-fn collect_monkeys(monkeys: &HashMap<String, Monkey>, id: &str) -> MonkeyTree {
-    let monkey = monkeys.get(id).unwrap();
-
+fn reversed_ops(monkeys: &HashMap<String, Monkey>, id: &str) -> Vec<(Operation, i64)> {
     if id == "humn" {
-        return MonkeyTree::Human;
-    }
+        vec![]
+    } else {
+        match monkeys.get(id).unwrap().clone() {
+            Monkey::Number(..) => unreachable!("Should not get a number monkey here!"),
+            Monkey::Operation {
+                mut left,
+                mut right,
+                operation,
+            } => {
+                // Always have the human on the right side
+                if contains_human(monkeys, &left) {
+                    swap(&mut left, &mut right);
+                }
 
-    match monkey {
-        Monkey::Number(x) => MonkeyTree::Leaf(*x),
-        Monkey::Operation {
-            left,
-            right,
-            operation,
-        } => MonkeyTree::Node {
-            left: Box::new(collect_monkeys(monkeys, left)),
-            right: Box::new(collect_monkeys(monkeys, right)),
-            operation: *operation,
-        },
+                let left = eval_monkeys(monkeys, &left);
+                let mut right = reversed_ops(monkeys, &right);
+                let mut ops = vec![(operation.opposite(), left)];
+                ops.append(&mut right);
+
+                ops
+            }
+        }
     }
 }
 
-#[derive(Clone, Debug, Hash)]
-enum MonkeyTree {
-    Node {
-        left: Box<MonkeyTree>,
-        right: Box<MonkeyTree>,
-        operation: Operation,
-    },
-    Leaf(i64),
-    Human,
+fn contains_human(monkeys: &HashMap<String, Monkey>, id: &str) -> bool {
+    if id == "humn" {
+        true
+    } else {
+        match monkeys.get(id).unwrap() {
+            Monkey::Number(..) => false,
+            Monkey::Operation { left, right, .. } => {
+                contains_human(monkeys, left) || contains_human(monkeys, right)
+            }
+        }
+    }
 }
 
 #[solution(day = "21", part = "1")]
 fn part_1(input: &str) -> i64 {
     let monkeys = monkeys(input);
 
-    eval_tree_monkey(&monkeys, "root")
+    eval_monkeys(&monkeys, "root")
 }
 
-fn eval_tree_monkey(monkeys: &HashMap<String, Monkey>, id: &str) -> i64 {
+fn eval_monkeys(monkeys: &HashMap<String, Monkey>, id: &str) -> i64 {
     let monkey = monkeys.get(id).unwrap();
 
     match monkey {
@@ -142,10 +91,7 @@ fn eval_tree_monkey(monkeys: &HashMap<String, Monkey>, id: &str) -> i64 {
             left,
             right,
             operation,
-        } => operation.operate(
-            eval_tree_monkey(monkeys, left),
-            eval_tree_monkey(monkeys, right),
-        ),
+        } => operation.operate(eval_monkeys(monkeys, left), eval_monkeys(monkeys, right)),
     }
 }
 
