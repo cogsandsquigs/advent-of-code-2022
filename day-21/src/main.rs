@@ -51,10 +51,8 @@ fn reversed_ops(monkeys: &HashMap<String, Monkey>, id: &str) -> Vec<(Operation, 
                     swap(&mut left, &mut right);
                 }
 
-                let left = eval_monkeys(monkeys, &left);
-                let mut right = reversed_ops(monkeys, &right);
-                let mut ops = vec![(operation.opposite(), left)];
-                ops.append(&mut right);
+                let mut ops = vec![(operation.opposite(), eval_monkeys(monkeys, &left))];
+                ops.append(&mut reversed_ops(monkeys, &right));
 
                 ops
             }
