@@ -8,4 +8,3 @@
 
 [dependencies]
   advent-utils = { path = "../advent-utils" }
-  anyhow       = "1.0.66"

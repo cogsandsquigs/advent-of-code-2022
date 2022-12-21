@@ -1,14 +1,8 @@
-use advent_utils::{files::read, macros::solution};
-use anyhow::Result;
+use advent_utils::macros::solution;
 
-fn main() -> Result<()> {
-    let input = read("day-20/input.txt")?;
-
-    part_1(&input);
-
-    part_2(&input);
-
-    Ok(())
+fn main() {
+    part_1();
+    part_2();
 }
 
 #[solution(day = "20", part = "2")]

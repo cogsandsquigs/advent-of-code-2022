@@ -1,16 +1,10 @@
-use advent_utils::{files::read, macros::solution};
-use anyhow::Result;
+use advent_utils::macros::solution;
 use num::complex::Complex64;
 use std::{collections::HashMap, mem::swap};
 
-fn main() -> Result<()> {
-    let input = read("day-21/input.txt")?;
-
-    part_1(&input);
-
-    part_2(&input);
-
-    Ok(())
+fn main() {
+    part_1();
+    part_2();
 }
 
 #[solution(day = "21", part = "2")]
@@ -117,15 +111,6 @@ impl Operation {
             Self::Sub => left - right,
             Self::Mul => left * right,
             Self::Div => left / right,
-        }
-    }
-
-    fn opposite(&self) -> Self {
-        match self {
-            Self::Add => Self::Sub,
-            Self::Sub => Self::Add,
-            Self::Mul => Self::Div,
-            Self::Div => Self::Mul,
         }
     }
 }

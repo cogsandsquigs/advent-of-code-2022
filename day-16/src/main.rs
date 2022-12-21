@@ -1,5 +1,4 @@
-use advent_utils::{files::read, macros::solution, queue::Queue};
-use anyhow::Result;
+use advent_utils::{macros::solution, queue::Queue};
 use itertools::Itertools;
 use nom::{
     branch::alt,
@@ -11,18 +10,13 @@ use nom::{
 };
 use std::{
     cmp::Reverse,
-    collections::{BTreeSet, HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     fmt::{Display, Formatter},
 };
 
-fn main() -> Result<()> {
-    let input = read("day-16/input.txt")?;
-
-    part_1(&input);
-
-    part_2(&input);
-
-    Ok(())
+fn main() {
+    part_1();
+    part_2();
 }
 
 #[solution(day = "16", part = "2")]

@@ -1,5 +1,4 @@
-use advent_utils::{files::read, macros::solution, point::Point};
-use anyhow::Result;
+use advent_utils::{macros::solution, point::Point};
 use nom::{
     bytes::complete::tag,
     character::complete::digit1,
@@ -8,14 +7,9 @@ use nom::{
     IResult,
 };
 
-fn main() -> Result<()> {
-    let input = read("day-15/input.txt")?;
-
-    part_1(&input);
-
-    part_2(&input);
-
-    Ok(())
+fn main() {
+    part_1();
+    part_2();
 }
 
 #[solution(day = "15", part = "2")]
