@@ -42,10 +42,9 @@ fn mix_n(list: Vec<i64>, n: usize) -> Vec<i64> {
             let idx = enumerated.iter().position(|(i, _)| i == &num).unwrap();
             let val = enumerated[idx].1;
             let final_idx = (idx as i64 + val).rem_euclid(len as i64 - 1) as usize
-                + if
-                // If we somehow are at the beginning of the list, we actually need to go to the
-                // last spot, as that is the place where the list wraps around.
-                ((idx as i64 + val).rem_euclid(len as i64 - 1)) == 0 {
+                + if ((idx as i64 + val).rem_euclid(len as i64 - 1)) == 0 {
+                    // If we somehow are at the beginning of the list, we actually need to go to the
+                    // last spot, as that is the place where the list wraps around.
                     len - 1
                 } else {
                     0
