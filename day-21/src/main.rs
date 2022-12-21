@@ -1,6 +1,6 @@
 use advent_utils::{files::read, macros::solution};
 use anyhow::Result;
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, mem::swap, vec};
 
 fn main() -> Result<()> {
     let input = read("day-21/input.test.txt")?;
@@ -30,9 +30,7 @@ fn equalize_monkeys(monkeys: &HashMap<String, Monkey>) -> i64 {
     // Do this so we know which one has the human: the right one always has the human
     // after this.
     if contains_human(&left) {
-        let tmp = left;
-        left = right;
-        right = tmp;
+        swap(&mut left, &mut right);
     }
 
     let ops = get_reversed_ops(&right);
@@ -60,9 +58,7 @@ fn get_reversed_ops(tree: &MonkeyTree) -> Vec<(Operation, i64)> {
             // Do this so we know which one has the human: the right one always has the human
             // after this.
             if contains_human(&left) {
-                let tmp = left;
-                left = right;
-                right = tmp;
+                swap(&mut left, &mut right);
             }
 
             let left = eval_tree(&left.clone());
