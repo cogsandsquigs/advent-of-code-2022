@@ -3,7 +3,7 @@ use anyhow::Result;
 use std::{collections::HashMap, vec};
 
 fn main() -> Result<()> {
-    let input = read("day-21/input.txt")?;
+    let input = read("day-21/input.test.txt")?;
 
     part_1(&input);
 
