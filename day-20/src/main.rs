@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use advent_utils::{files::read, macros::solution};
 use anyhow::Result;
 
@@ -36,7 +34,7 @@ fn part_1(input: &str) -> i64 {
 }
 
 fn mix_n(list: Vec<i64>, n: usize) -> Vec<i64> {
-    let mut enumerated: VecDeque<(usize, i64)> = list.into_iter().enumerate().collect();
+    let mut enumerated: Vec<(usize, i64)> = list.into_iter().enumerate().collect();
     let len = enumerated.len(); // Caching this here
 
     for _ in 0..n {
