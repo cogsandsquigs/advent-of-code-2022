@@ -30,8 +30,50 @@ fn walk(map: &mut MonkeyMap) {
                 Turn::Left => map.facing = if map.facing == 0 { 4 } else { map.facing - 1 },
             },
             Path::Walk(x) => {
-                for i in 0..=*x {
-                    todo!()
+                for _ in 0..*x {
+                    let next_pt = match map.facing {
+                        0 => Point::new(map.at.x + 1, map.at.y),
+                        1 => Point::new(map.at.x, map.at.y + 1),
+                        2 => Point::new(map.at.x - 1, map.at.y),
+                        3 => Point::new(map.at.x, map.at.y - 1),
+                        x => unreachable!("Cannot face in direction {x}"),
+                    };
+
+                    map.at = match map.map[next_pt] {
+                        // If it's a wall, just skip to the next direction
+                        Tile::Wall => break,
+
+                        // If it's ok, just go to the next point
+                        Tile::Open => next_pt,
+
+                        // Otherwise, wrap around
+                        Tile::Empty => match map.facing {
+                            0 => Point::new(
+                                next_pt.x,
+                                map.map
+                                    .clone()
+                                    .into_iter()
+                                    .next()
+                                    .unwrap()
+                                    .into_iter()
+                                    .find_position(|x| x == &Tile::Open)
+                                    .unwrap()
+                                    .0,
+                            ),
+                            1 => Point::new(
+                                map.map
+                                    .clone()
+                                    .into_iter()
+                                    .find_position(|x| x[next_pt.x] == Tile::Open)
+                                    .unwrap()
+                                    .0,
+                                next_pt.y,
+                            ),
+                            2 => todo!(),
+                            3 => todo!(),
+                            x => unreachable!("Cannot face in direction {x}"),
+                        },
+                    };
                 }
             }
         }
@@ -42,30 +84,43 @@ fn monkey_map(input: &str) -> MonkeyMap {
     let mut split = input.split("\n\n");
     let map = split.next().unwrap();
     let longest_line_len = map.lines().max_by_key(|line| line.len()).unwrap().len();
+    let map = Grid::try_from(
+        map.lines()
+            .map(|line| {
+                let mut v = line
+                    .chars()
+                    .map(|c| match c {
+                        ' ' => Tile::Empty,
+                        '.' => Tile::Open,
+                        '#' => Tile::Wall,
+                        c => unreachable!("Unknown character {c}"),
+                    })
+                    .collect_vec();
+
+                if v.len() != longest_line_len {
+                    v.append(&mut vec![Tile::Empty; longest_line_len - v.len()])
+                }
+
+                v
+            })
+            .collect_vec(),
+    )
+    .unwrap();
+
+    let at = Point::new(
+        0,
+        map.clone()
+            .into_iter()
+            .next()
+            .unwrap()
+            .into_iter()
+            .find_position(|x| x == &Tile::Open)
+            .unwrap()
+            .0,
+    );
 
     MonkeyMap {
-        map: Grid::try_from(
-            map.lines()
-                .map(|line| {
-                    let mut v = line
-                        .chars()
-                        .map(|c| match c {
-                            ' ' => Tile::Empty,
-                            '.' => Tile::Open,
-                            '#' => Tile::Wall,
-                            c => unreachable!("Unknown character {c}"),
-                        })
-                        .collect_vec();
-
-                    if v.len() != longest_line_len {
-                        v.append(&mut vec![Tile::Empty; longest_line_len - v.len()])
-                    }
-
-                    v
-                })
-                .collect_vec(),
-        )
-        .unwrap(),
+        map,
         directions: split
             .next()
             .unwrap()
@@ -88,7 +143,7 @@ fn monkey_map(input: &str) -> MonkeyMap {
             .collect::<Vec<Vec<Path>>>()
             .concat(),
         facing: 0,
-        at: todo!(),
+        at,
     }
 }
 
