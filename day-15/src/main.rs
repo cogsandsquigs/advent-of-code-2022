@@ -13,7 +13,7 @@ fn main() {
 }
 
 #[solution(day = "15", part = "2")]
-fn part_2(input: &str) -> i64 {
+fn part_2(input: &str) -> usize {
     let sensors = parse(input);
     let x_min = 0;
     let x_max = 4000000; // 20 for test, 4000000 for actual input
@@ -43,7 +43,7 @@ fn part_2(input: &str) -> i64 {
                     continue;
                 }
 
-                let gap = (c - b).abs();
+                let gap = c.abs_diff(d);
 
                 if gap > 1 {
                     return (b + 1) * 4000000 + y_level;
@@ -56,9 +56,9 @@ fn part_2(input: &str) -> i64 {
 }
 
 #[solution(day = "15", part = "1")]
-fn part_1(input: &str) -> i64 {
+fn part_1(input: &str) -> usize {
     let sensors = parse(input);
-    let y_level: i64 = 2000000; // 10 for test, 2000000 for actual input
+    let y_level: usize = 2000000; // 10 for test, 2000000 for actual input
     let mut intervals = Vec::new();
 
     for sensor in sensors {
@@ -69,10 +69,10 @@ fn part_1(input: &str) -> i64 {
 
     merge_intervals(&mut intervals);
 
-    intervals.iter().map(|(a, b)| (b - a).abs()).sum()
+    intervals.iter().map(|(a, b)| a.abs_diff(*b)).sum()
 }
 
-fn merge_intervals(intervals: &mut Vec<(i64, i64)>) {
+fn merge_intervals(intervals: &mut Vec<(usize, usize)>) {
     intervals.sort_by(|a, b| a.0.cmp(&b.0));
 
     let mut index = 0;
@@ -90,11 +90,11 @@ fn merge_intervals(intervals: &mut Vec<(i64, i64)>) {
 }
 
 /// Returns `None` if the y-level is not within range of the sensor
-fn x_interval_at_y(sensor: Sensor, y: i64) -> Option<(i64, i64)> {
+fn x_interval_at_y(sensor: Sensor, y: usize) -> Option<(usize, usize)> {
     // Get distance to beacon
     let beacon_distance = sensor.distance_to_beacon();
     // Get distance to y level
-    let y_distance = (y - sensor.position.y).abs();
+    let y_distance = y.abs_diff(sensor.position.y);
 
     // If y level is not within range of the sensor, return None
     if y_distance > beacon_distance {
@@ -120,19 +120,19 @@ fn parse(input: &str) -> Vec<Sensor> {
 fn parse_line(input: &str) -> IResult<&str, Sensor> {
     let (input, _) = tag("Sensor at x=")(input)?;
     let (input, sensor_x) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i64>()
+        s.parse::<usize>()
     })(input)?;
     let (input, _) = tag(", y=")(input)?;
     let (input, sensor_y) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i64>()
+        s.parse::<usize>()
     })(input)?;
     let (input, _) = tag(": closest beacon is at x=")(input)?;
     let (input, beacon_x) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i64>()
+        s.parse::<usize>()
     })(input)?;
     let (input, _) = tag(", y=")(input)?;
     let (input, beacon_y) = map_res(recognize(tuple((opt(tag("-")), digit1))), |s: &str| {
-        s.parse::<i64>()
+        s.parse::<usize>()
     })(input)?;
 
     Ok((
@@ -146,19 +146,19 @@ fn parse_line(input: &str) -> IResult<&str, Sensor> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Sensor {
-    position: Point,
-    closest_beacon: Point,
+    position: Point<usize>,
+    closest_beacon: Point<usize>,
 }
 
 impl Sensor {
-    fn new(position: Point, closest_beacon: Point) -> Self {
+    fn new(position: Point<usize>, closest_beacon: Point<usize>) -> Self {
         Self {
             position,
             closest_beacon,
         }
     }
 
-    fn distance_to_beacon(&self) -> i64 {
+    fn distance_to_beacon(&self) -> usize {
         self.position.manhattan_distance(&self.closest_beacon)
     }
 }

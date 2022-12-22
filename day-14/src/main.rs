@@ -37,7 +37,7 @@ fn part_2(input: &str) -> usize {
     i + 1
 }
 
-fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point, max_y: i64) -> Point {
+fn drop_sand_p2(grid: &mut Grid<Tile>, point: Point<usize>, max_y: usize) -> Point<usize> {
     let mut current = point;
 
     loop {
@@ -71,7 +71,7 @@ fn part_1(input: &str) -> usize {
     loop {
         let new = drop_sand_p1(&mut cave, Point::new(500, 0));
 
-        if new.y >= cave.height as i64 - 1 {
+        if new.y >= cave.height - 1 {
             break;
         }
 
@@ -81,7 +81,7 @@ fn part_1(input: &str) -> usize {
     i
 }
 
-fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
+fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point<usize>) -> Point<usize> {
     let mut current = point;
 
     loop {
@@ -98,7 +98,7 @@ fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
 
         current = found;
 
-        if current.y >= grid.height as i64 - 1 {
+        if current.y >= grid.height - 1 {
             break;
         }
     }
@@ -109,7 +109,7 @@ fn drop_sand_p1(grid: &mut Grid<Tile>, point: Point) -> Point {
 }
 
 fn parse_input(input: &str) -> Grid<Tile> {
-    let rocks: Vec<Vec<Point>> = input
+    let rocks: Vec<Vec<Point<usize>>> = input
         .lines()
         .map(|line| {
             line.split(" -> ")
@@ -136,7 +136,7 @@ fn parse_input(input: &str) -> Grid<Tile> {
     grid
 }
 
-fn draw_line(a: &Point, b: &Point) -> Vec<Point> {
+fn draw_line(a: &Point<usize>, b: &Point<usize>) -> Vec<Point<usize>> {
     let mut points = vec![];
 
     if a.x != b.x {
