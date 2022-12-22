@@ -14,12 +14,12 @@ fn part_2(input: &str) -> i64 {
 }
 
 #[solution(day = "22", part = "1")]
-fn part_1(input: &str) -> i64 {
-    let monkey_map = monkey_map(input);
+fn part_1(input: &str) -> usize {
+    let mut monkey_map = monkey_map(input);
 
-    println!("{}", monkey_map);
+    walk(&mut monkey_map);
 
-    todo!()
+    (monkey_map.at.x + 1) * 1000 + (monkey_map.at.y + 1) * 6 + monkey_map.facing
 }
 
 fn walk(map: &mut MonkeyMap) {
@@ -39,44 +39,83 @@ fn walk(map: &mut MonkeyMap) {
                         x => unreachable!("Cannot face in direction {x}"),
                     };
 
-                    map.at = match map.map[next_pt] {
-                        // If it's a wall, just skip to the next direction
-                        Tile::Wall => break,
+                    map.at = if next_pt.x >= map.map.width - 1
+                        || next_pt.y >= map.map.height - 1
+                        || next_pt.x == 0
+                        || next_pt.y == 0
+                    {
+                        wrap_around(map, next_pt)
+                    } else {
+                        println!(
+                            "{} {} {} {}",
+                            map.map.width, map.map.height, next_pt.x, next_pt.y
+                        );
+                        match map.map[next_pt] {
+                            // If it's a wall, just skip to the next direction
+                            Tile::Wall => break,
 
-                        // If it's ok, just go to the next point
-                        Tile::Open => next_pt,
+                            // If it's ok, just go to the next point
+                            Tile::Open => next_pt,
 
-                        // Otherwise, wrap around
-                        Tile::Empty => match map.facing {
-                            0 => Point::new(
-                                next_pt.x,
-                                map.map
-                                    .clone()
-                                    .into_iter()
-                                    .next()
-                                    .unwrap()
-                                    .into_iter()
-                                    .find_position(|x| x == &Tile::Open)
-                                    .unwrap()
-                                    .0,
-                            ),
-                            1 => Point::new(
-                                map.map
-                                    .clone()
-                                    .into_iter()
-                                    .find_position(|x| x[next_pt.x] == Tile::Open)
-                                    .unwrap()
-                                    .0,
-                                next_pt.y,
-                            ),
-                            2 => todo!(),
-                            3 => todo!(),
-                            x => unreachable!("Cannot face in direction {x}"),
-                        },
+                            // Otherwise, wrap around
+                            Tile::Empty => wrap_around(map, next_pt),
+                        }
                     };
                 }
             }
         }
+    }
+}
+
+fn wrap_around(map: &MonkeyMap, point: Point<usize>) -> Point<usize> {
+    match map.facing {
+        0 => Point::new(
+            point.x,
+            map.map
+                .clone()
+                .into_iter()
+                .nth(point.y)
+                .unwrap()
+                .into_iter()
+                .find_position(|x| x == &Tile::Open)
+                .unwrap()
+                .0,
+        ),
+        1 => Point::new(
+            map.map
+                .clone()
+                .into_iter()
+                .find_position(|x| x[point.x] == Tile::Open)
+                .unwrap()
+                .0,
+            point.y,
+        ),
+        2 => Point::new(
+            point.x,
+            map.map
+                .clone()
+                .into_iter()
+                .nth(point.y)
+                .unwrap()
+                .into_iter()
+                .rev()
+                .enumerate()
+                .find(|(_, x)| x == &Tile::Open)
+                .unwrap()
+                .0,
+        ),
+        3 => Point::new(
+            map.map
+                .clone()
+                .into_iter()
+                .enumerate()
+                .rev()
+                .find(|(_, x)| x[point.x] == Tile::Open)
+                .unwrap()
+                .0,
+            point.y,
+        ),
+        x => unreachable!("Cannot face in direction {x}"),
     }
 }
 
@@ -205,8 +244,8 @@ enum Path {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Turn {
-    Right = 1,
-    Left = -1,
+    Right,
+    Left,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
