@@ -8,3 +8,4 @@
 
 [dependencies]
   advent-utils = { path = "../advent-utils" }
+itertools = "0.10.5"
