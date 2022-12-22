@@ -53,17 +53,16 @@ fn monkeys(input: &str) -> HashMap<String, Monkey> {
     input.lines().for_each(|line| {
         let sep: Vec<&str> = line.split_whitespace().collect();
         let id = sep[0][0..4].to_string();
-        let monkey: Monkey;
 
-        if sep.len() == 2 {
-            monkey = Monkey::Number(sep[1].parse().unwrap())
+        let monkey = if sep.len() == 2 {
+            Monkey::Number(sep[1].parse().unwrap())
         } else {
-            monkey = Monkey::Operation {
+            Monkey::Operation {
                 left: sep[1].to_string(),
                 right: sep[3].to_string(),
                 operation: Operation::try_from(sep[2]).unwrap(),
             }
-        }
+        };
 
         monkey_set.insert(id, monkey);
     });
